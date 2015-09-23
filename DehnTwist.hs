@@ -12,9 +12,9 @@ showGenerator (Through i) = (['a'..] !! i) : "'"
 
 showPath :: Path -> String
 showPath (Pos g0 : rest)
-  | showGenerator g0 ++ ' ' ++ showPath rest
+  showGenerator g0 ++ ' ' ++ showPath rest
 showPath (Neg g0 : rest)
-  | '-' ++ showGenerator g0 ++ showPath rest
+  '-' ++ showGenerator g0 ++ showPath rest
 showPath []
   ""
 
