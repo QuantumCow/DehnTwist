@@ -10,6 +10,14 @@ showGenerator :: Generator -> String
 showGenerator (Around i) = (['a'..] !! i) : []
 showGenerator (Through i) = (['a'..] !! i) : "'"
 
+showPath :: Path -> String
+showPath (Pos g0 : rest)
+  | showGenerator g0 ++ ' ' ++ showPath rest
+showPath (Neg g0 : rest)
+  | '-' ++ showGenerator g0 ++ showPath rest
+showPath []
+  ""
+
 -- | @dropPrefix prefix list@ is @Just list'@ if @list == prefix++list'@
 dropPrefix :: Eq a => [a] -> [a] -> Maybe [a]
 dropPrefix [] rest = Just rest
@@ -73,5 +81,5 @@ genusNRelators n = go n 0
     go :: Int -> Int -> Path
     go n b | (n==b) =
       []
-    go n b =
-      concat [[(Pos (Around b)) (Pos (Through b)) (Neg (Around b)) (Neg (Around b))] (go n b+1)]
+    go n b = 
+      [Pos (Around b), Pos (Through b), Neg (Around b), Neg (Around b)] ++ go n (b+1)
