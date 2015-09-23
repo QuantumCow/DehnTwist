@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 
+import Data.Foldable
+
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
@@ -52,13 +54,13 @@ test = Path [Pos $ Around 0, Neg $ Around 1, Neg $ Through 0, Pos $ Through 1]
 -- | @dehnTwist rot path@ is the Dehn twist of @path@ twisted
 -- along path @rot@.
 dehnTwist :: Path -> Path -> Path
-dehnTwist rot path = concatMap go (unPath path)
+dehnTwist rot path = foldMap go (unPath path)
   where
     go :: Signed Generator -> Path
     go (Pos gen) | a@(_:_) <- intersection gen rot =
-      Path ((concat a) ++ [Pos gen])
+      (fold a) ++ Path ([Pos gen])
     go (Neg gen) | a@(_:_) <- intersection gen rot =
-      Path ((concat a) ++ [Pos gen])
+      (fold a) ++ Path ([Pos gen])
 --    Path (Neg gen : concatMap reverse a)
     go gen = (Path [gen])
 
