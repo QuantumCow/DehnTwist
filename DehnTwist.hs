@@ -58,9 +58,9 @@ dehnTwist rot path = foldMap go (unPath path)
   where
     go :: Signed Generator -> Path
     go (Pos gen) | a@(_:_) <- intersection gen rot =
-      (fold a) ++ Path ([Pos gen])
+      (fold a) ++ (Path [Pos gen])
     go (Neg gen) | a@(_:_) <- intersection gen rot =
-      (fold a) ++ Path ([Pos gen])
+      (fold a) ++ (Path [Pos gen])
 --    Path (Neg gen : concatMap reverse a)
     go gen = (Path [gen])
 
