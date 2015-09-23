@@ -66,12 +66,12 @@ intersection gen = go []
       | unSigned x `intersects` gen = (x:xs++reverse accum) : go (x:accum) xs
       | otherwise                   = go (x:accum) xs
     go accum []                     = []
-	
+
 genusNRelators :: Int -> Path
 genusNRelators n = go n 0
   where
     go :: Int -> Int -> Path
-	go n b | (n==b) =
-	  []
-	go n b =
-	  concat [[(Pos (Around b)) (Pos (Through b)) (Neg (Around b)) (Neg (Around b))] (go n b+1)]
+    go n b | (n==b) =
+      []
+    go n b =
+      concat [[(Pos (Around b)) (Pos (Through b)) (Neg (Around b)) (Neg (Around b))] (go n b+1)]
