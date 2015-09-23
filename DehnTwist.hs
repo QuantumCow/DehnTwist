@@ -4,18 +4,22 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-type Path = [Signed Generator]
+data Path = Path [Signed Generator]
+  deriving (Show)
+  instance Monoid Path where
+    mempty = Path []
+    Path a `mappend` Path b = Path (a `mappend` b)        
 
 showGenerator :: Generator -> String
 showGenerator (Around i) = (['a'..] !! i) : []
 showGenerator (Through i) = (['a'..] !! i) : "'"
 
 showPath :: Path -> String
-showPath (Pos g0 : rest)
-  showGenerator g0 ++ ' ' ++ showPath rest
-showPath (Neg g0 : rest)
-  '-' ++ showGenerator g0 ++ showPath rest
-showPath []
+showPath (Pos g0 : rest) =
+  showGenerator g0 ++ " " ++ showPath rest
+showPath (Neg g0 : rest) =
+  "-" ++ showGenerator g0 ++ showPath rest
+showPath [] =
   ""
 
 -- | @dropPrefix prefix list@ is @Just list'@ if @list == prefix++list'@
@@ -32,7 +36,7 @@ canonicalize (Pos g0 : Neg g1 : rest)
 canonicalize (Neg g0 : Pos g1 : rest)
   | g0 == g1            = canonicalize rest
 canonicalize (p : rest) = p : canonicalize rest
-canonicalize [] = []
+canonicalize [] = Path  []
 
 data Signed a = Pos a | Neg a
               deriving (Show, Functor)
