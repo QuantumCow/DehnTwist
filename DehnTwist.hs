@@ -4,22 +4,22 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-data Path = Path [Signed Generator]
+data Path = Path { unPath :: [Signed Generator]}
   deriving (Show)
-  instance Monoid Path where
-    mempty = Path []
-    Path a `mappend` Path b = Path (a `mappend` b)        
+instance Monoid Path where
+  mempty = Path []
+  Path a `mappend` Path b = Path (a `mappend` b)        
 
 showGenerator :: Generator -> String
 showGenerator (Around i) = (['a'..] !! i) : []
 showGenerator (Through i) = (['a'..] !! i) : "'"
 
 showPath :: Path -> String
-showPath (Pos g0 : rest) =
-  showGenerator g0 ++ " " ++ showPath rest
-showPath (Neg g0 : rest) =
-  "-" ++ showGenerator g0 ++ showPath rest
-showPath [] =
+showPath (Path (Pos g0 : rest)) =
+  showGenerator g0 ++ " " ++ showPath (Path rest)
+showPath (Path (Neg g0 : rest)) =
+  "-" ++ showGenerator g0 ++ showPath (Path rest)
+showPath (Path []) =
   ""
 
 -- | @dropPrefix prefix list@ is @Just list'@ if @list == prefix++list'@
@@ -31,12 +31,12 @@ dropPrefix _ _ = Nothing
 
 -- | Put a path into canonical form
 canonicalize :: Path -> Path
-canonicalize (Pos g0 : Neg g1 : rest)
-  | g0 == g1            = canonicalize rest
-canonicalize (Neg g0 : Pos g1 : rest)
-  | g0 == g1            = canonicalize rest
-canonicalize (p : rest) = p : canonicalize rest
-canonicalize [] = Path  []
+canonicalize (Path (Pos g0 : Neg g1 : rest))
+  | g0 == g1            = canonicalize (Path rest)
+canonicalize (Path (Neg g0 : Pos g1 : rest))
+  | g0 == g1            = canonicalize (Path rest)
+canonicalize (Path (p : rest)) = (Path (p : unPath (canonicalize (Path rest))))
+canonicalize (Path []) = (Path [])
 
 data Signed a = Pos a | Neg a
               deriving (Show, Functor)
@@ -47,19 +47,20 @@ unSigned (Pos a) = a
 unSigned (Neg a) = a
 
 test :: Path
-test = [Pos $ Around 0, Neg $ Around 1, Neg $ Through 0, Pos $ Through 1]
+test = Path [Pos $ Around 0, Neg $ Around 1, Neg $ Through 0, Pos $ Through 1]
 
 -- | @dehnTwist rot path@ is the Dehn twist of @path@ twisted
 -- along path @rot@.
 dehnTwist :: Path -> Path -> Path
-dehnTwist rot path = concatMap go path
+dehnTwist rot path = concatMap go (unPath path)
   where
     go :: Signed Generator -> Path
     go (Pos gen) | a@(_:_) <- intersection gen rot =
-      concat a ++ [Pos gen]
+      Path ((concat a) ++ [Pos gen])
     go (Neg gen) | a@(_:_) <- intersection gen rot =
-      Neg gen : concatMap reverse a
-    go gen = [gen]
+      Path ((concat a) ++ [Pos gen])
+--    Path (Neg gen : concatMap reverse a)
+    go gen = (Path [gen])
 
 -- | Do two generators intersect?
 intersects :: Generator -> Generator -> Bool
@@ -74,16 +75,16 @@ intersection :: Generator -> Path -> [Path]
 intersection gen = go []
   where
     go :: Path -> Path -> [Path]
-    go accum (x:xs)
-      | unSigned x `intersects` gen = (x:xs++reverse accum) : go (x:accum) xs
-      | otherwise                   = go (x:accum) xs
-    go accum []                     = []
+    go (Path (accum)) (Path (x:xs))
+      | unSigned x `intersects` gen = (Path (x:xs++reverse accum)) : go (Path (x:accum)) (Path xs)
+      | otherwise                   = go (Path (x:accum)) (Path xs)
+    go accum (Path [])              = []
 
 genusNRelators :: Int -> Path
 genusNRelators n = go n 0
   where
     go :: Int -> Int -> Path
     go n b | (n==b) =
-      []
+      Path []
     go n b = 
-      [Pos (Around b), Pos (Through b), Neg (Around b), Neg (Around b)] ++ go n (b+1)
+      Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Around b)] ++ unPath (go n (b+1)))
