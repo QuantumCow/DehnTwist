@@ -75,7 +75,7 @@ intersects _           _                    = False
 -- do not intersect. If @Just path2'@ then they intersect and
 -- @path2'@ starts at one of the generators in @path1@.
 intersection :: Generator -> Path -> [Path]
-intersection gen = go []
+intersection gen = go (Path [])
   where
     go :: Path -> Path -> [Path]
     go (Path (accum)) (Path (x:xs))
@@ -90,4 +90,4 @@ genusNRelators n = go n 0
     go n b | (n==b) =
       Path []
     go n b = 
-      Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Around b)] ++ unPath (go n (b+1)))
+      Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
