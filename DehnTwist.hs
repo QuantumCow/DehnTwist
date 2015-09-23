@@ -7,21 +7,31 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-data Path = Path { unPath :: [Signed Generator]}
-  deriving (Show)
+data Path = Path { unPath :: RawPath}
+  deriving (Eq, Show)
 instance Monoid Path where
   mempty = Path []
-  Path a `mappend` Path b = Path (a `mappend` b)        
+  Path a `mappend` Path b = Path (a `mappend` b)
+
+type PathList = [Path]
+
+type RawPath = [Signed Generator]
+
+data RelationPairList = [PathList]
 
 showGenerator :: Generator -> String
-showGenerator (Around i) = (['a'..] !! i) : []
-showGenerator (Through i) = (['a'..] !! i) : "'"
+showGenerator (Around i) = "a" ++ (show i)
+showGenerator (Through i) = "b" ++ (show i)
+
+showSignedGenerator :: (Signed Generator) -> String
+showSignedGenerator (Pos g0) = showGenerator g0
+showSignedGenerator (Neg g0) = (showGenerator g0) ++ "'"
 
 showPath :: Path -> String
 showPath (Path (Pos g0 : rest)) =
   showGenerator g0 ++ " " ++ showPath (Path rest)
 showPath (Path (Neg g0 : rest)) =
-  "-" ++ showGenerator g0 ++ showPath (Path rest)
+  showGenerator g0 ++ "' " ++ showPath (Path rest)
 showPath (Path []) =
   ""
 
@@ -91,3 +101,18 @@ genusNRelators n = go n 0
       Path []
     go n b = 
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
+      
+GeneratePermutations :: Path -> PathList
+GeneratePermutations (Path raw n) = go raw
+  where
+    go :: RawPath -> [Path]
+
+    
+RotatePermutations :: RawPath -> Int -> RelationPairList
+RotatePermutations p n = go p [] n
+  where
+    go :: RawPath -> RawPath -> PathList
+    go [] head =
+      []
+    go tail head =
+      [(splitAt n (tail ++ head))] ++ (go (drop 1 tail) (head ++ (take 1 tail)))
