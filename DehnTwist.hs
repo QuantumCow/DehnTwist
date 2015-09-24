@@ -101,18 +101,48 @@ genusNRelators n = go n 0
       Path []
     go n b = 
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
-      
-GeneratePermutations :: Path -> PathList
-GeneratePermutations (Path raw n) = go raw
-  where
-    go :: RawPath -> [Path]
 
-    
-RotatePermutations :: RawPath -> Int -> RelationPairList
-RotatePermutations p n = go p [] n
+isIdentity :: Path -> Int -> Bool
+isIdentity (Path p) genus = go p 0
   where
-    go :: RawPath -> RawPath -> PathList
-    go [] head =
-      []
-    go tail head =
-      [(splitAt n (tail ++ head))] ++ (go (drop 1 tail) (head ++ (take 1 tail)))
+    go :: RawPath -> Int -> Bool
+    go path genus*4 = ((cancelInverses path) == [])
+    go [] n = True
+    go path n = if (simplifiable path genus n)
+                  then go (cancelInverses (simplify path genus n)) 0
+                  else go path (n + 1)
+
+simplify :: RawPath -> Int -> Int -> RawPath
+simplify p genus index = 
+-- | 
+cancelInverses :: RawPath -> RawPath
+cancelInverses (Pos g0 : Neg g1 : rest)
+  | g0 == g1      = cancelInverses rest
+cancelInverses (Neg g0 : Pos g1 : rest))
+  | g0 == g1      = cancelInverses rest
+cancelInverses (p : rest) = (p : cancelInverses rest)
+cancelInverses [] = []
+                  
+simplifiable :: RawPath -> Int -> Int -> Bool
+simplifiable p genus index = isInfixOf (matchCycleByGenus genus index) p
+                  
+matchCycleByGenus :: Int -> Int -> RawPath
+matchCycleByGenus genus index = MatchCycle (genusNRelators genus) index
+
+replaceCycleByGenus :: Int -> Int -> RawPath
+replaceCycleByGenus genus index = replaceCycle (genusNRelators genus) index
+
+matchCycle :: Path -> Int -> RawPath
+matchCycle (Path raw) n = (take (ceiling (((length raw) + 1) / 2)) (drop n (cycle raw)))
+
+replaceCycle :: Path -> Int -> RawPath
+replaceCycle (Path raw) n =
+   (take (floor (((length raw) - 1) / 2)) (drop (n + (ceiling (((length raw) + 1) / 2))) (cycle raw)))
+
+invert :: Path -> Path
+invert (Path raw) = (Path (go raw))
+  where
+    go :: RawPath -> RawPath
+      go [] = []
+      go ((Pos x) : rest) =  (go rest) ++ (Neg x)
+      go ((Neg x) : rest) =  (go rest) ++ (Pos x)      
