@@ -2,6 +2,7 @@
 
 import Data.Foldable
 import Data.Monoid
+import Data.List
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
@@ -17,7 +18,7 @@ type PathList = [Path]
 
 type RawPath = [Signed Generator]
 
-data RelationPairList = [PathList]
+type RelationPairList = [PathList]
 
 showGenerator :: Generator -> String
 showGenerator (Around i) = "a" ++ (show i)
@@ -52,7 +53,7 @@ canonicalize (Path (p : rest)) = (Path (p : unPath (canonicalize (Path rest))))
 canonicalize (Path []) = (Path [])
 
 data Signed a = Pos a | Neg a
-              deriving (Show, Functor)
+              deriving (Eq, Show, Functor)
 
 -- | Extract the @a@ from a @Signed a@
 unSigned :: Signed a -> a
@@ -103,13 +104,13 @@ genusNRelators n = go n 0
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
 
 isEquivalent :: Path -> Path -> Int -> Bool
-isEquivalent (Path p1) (Path p2) genus = isIdentity (p1 ++ (invert p2)) genus
+isEquivalent p1 p2 genus = isIdentity (p1 <> (invert p2)) genus
       
 isIdentity :: Path -> Int -> Bool
 isIdentity (Path p) genus = go p 0
   where
     go :: RawPath -> Int -> Bool
-    go path genus*4 = ((cancelInverses path) == [])
+    go path n | (n == genus*4) = ((cancelInverses path) == [])
     go [] n = True
     go path n = if (simplifiable path genus n)
                   then go (cancelInverses (simplify path genus n)) 0
@@ -122,7 +123,8 @@ subList as xxs@(x:xs)
   | otherwise                       = 1 + subList as xs
 
 simplify :: RawPath -> Int -> Int -> RawPath
-simplify p genus index = go (subList (matchCycleByGenus genus index) p) (2*genus + 1) (invert (replaceCycleByGenus genus index))
+simplify p genus index =
+ go (subList (matchCycleByGenus genus index) p) (2*genus + 1) (unPath (invert (Path (replaceCycleByGenus genus index))))
   where
     go :: Int -> Int -> RawPath -> RawPath
     go (-1) length replacement = p
@@ -132,7 +134,7 @@ simplify p genus index = go (subList (matchCycleByGenus genus index) p) (2*genus
 cancelInverses :: RawPath -> RawPath
 cancelInverses (Pos g0 : Neg g1 : rest)
   | g0 == g1      = cancelInverses rest
-cancelInverses (Neg g0 : Pos g1 : rest))
+cancelInverses (Neg g0 : Pos g1 : rest)
   | g0 == g1      = cancelInverses rest
 cancelInverses (p : rest) = (p : cancelInverses rest)
 cancelInverses [] = []
@@ -141,22 +143,22 @@ simplifiable :: RawPath -> Int -> Int -> Bool
 simplifiable p genus index = isInfixOf (matchCycleByGenus genus index) p
                   
 matchCycleByGenus :: Int -> Int -> RawPath
-matchCycleByGenus genus index = MatchCycle (genusNRelators genus) index
+matchCycleByGenus genus index = matchCycle (genusNRelators genus) index
 
 replaceCycleByGenus :: Int -> Int -> RawPath
 replaceCycleByGenus genus index = replaceCycle (genusNRelators genus) index
 
 matchCycle :: Path -> Int -> RawPath
-matchCycle (Path raw) n = (take (ceiling (((length raw) + 1) / 2)) (drop n (cycle raw)))
+matchCycle (Path raw) n = (take (ceiling (((fromIntegral (length raw)) + 1) / 2.0)) (drop n (cycle raw)))
 
 replaceCycle :: Path -> Int -> RawPath
 replaceCycle (Path raw) n =
-   (take (floor (((length raw) - 1) / 2)) (drop (n + (ceiling (((length raw) + 1) / 2))) (cycle raw)))
+   (take (floor (((fromIntegral (length raw)) - 1) / 2.0)) (drop (n + (ceiling (((fromIntegral (length raw)) + 1) / 2.0))) (cycle raw)))
 
 invert :: Path -> Path
 invert (Path raw) = (Path (go raw))
   where
     go :: RawPath -> RawPath
-      go [] = []
-      go ((Pos x) : rest) =  (go rest) ++ (Neg x)
-      go ((Neg x) : rest) =  (go rest) ++ (Pos x)      
+    go [] = []
+    go (Pos x : rest) = (go rest) ++ [Neg x]
+    go (Neg x : rest) = (go rest) ++ [Pos x]     
