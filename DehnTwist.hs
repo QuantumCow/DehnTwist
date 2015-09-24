@@ -112,8 +112,19 @@ isIdentity (Path p) genus = go p 0
                   then go (cancelInverses (simplify path genus n)) 0
                   else go path (n + 1)
 
+subList :: Eq a => [a] -> [a] -> Int
+subList _ [] = -1
+subList as xxs@(x:xs)
+  | all (uncurry (==)) $ zip as xxs = 0
+  | otherwise                       = 1 + subList as xs
+
 simplify :: RawPath -> Int -> Int -> RawPath
-simplify p genus index = 
+simplify p genus index = go (subList (matchCycleByGenus genus index) p) (2*genus + 1) (invert (replaceCycleByGenus genus index))
+  where
+    go :: Int -> Int -> RawPath -> RawPath
+    go (-1) length replacement = p
+    go index length replacement = (take index p) ++ replacement ++ (drop (index + length) p)
+
 -- | 
 cancelInverses :: RawPath -> RawPath
 cancelInverses (Pos g0 : Neg g1 : rest)
