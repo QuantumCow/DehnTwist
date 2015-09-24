@@ -102,6 +102,9 @@ genusNRelators n = go n 0
     go n b = 
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
 
+isEquivalent :: Path -> Path -> Int -> Bool
+isEquivalent (Path p1) (Path p2) genus = isIdentity (p1 ++ (invert p2)) genus
+      
 isIdentity :: Path -> Int -> Bool
 isIdentity (Path p) genus = go p 0
   where
