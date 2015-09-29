@@ -35,6 +35,28 @@ homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
 homologyDehnTwistSequence [] h1 = h1
 homologyDehnTwistSequence [] (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
 
+homologySingle Int -> Int -> Int -> Homology
+homologySingle homChoice homIndex genus 
+  | (homChoice == 0) = Homology genus (replicate homIndex 0)++[1]++(replicate (genus-homIndex-1)) (replicate genus 0)
+  | (homChoice == 1) = Homology genus (replicate genus 0) (replicate homIndex 0)++[1]++(replicate (genus-homIndex-1))
+
+findNonZeroIntersection :: Homology -> Maybe Homology
+findNonZeroIntersection h1 homChoice = go homChoice 0
+  where
+    go :: Int -> Maybe Int
+    go count
+      | (count ==(genus h1)) 
+        = Nothing
+      | (Not ((homologyDotProduct (homologySingle 0 count (genus h1)) h1) == 0)
+        = Just (homologySingle 0 count (genus h1))
+      | (Not ((homologyDotProduct (homologySingle 1 count (genus h1)) h1) == 0)
+        = Just (homologySingle 1 count (genus h1))
+      | otherwise 
+        = go homChoice (count + 1)
+
+calculateSignature :: HomologyPath -> Int
+calculateSignature p1 = 
+
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
 instance Monoid Path where
