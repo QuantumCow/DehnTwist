@@ -8,6 +8,19 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
+data Homology = Homology { genus :: Int,
+                           A :: [Int],
+                           B :: [Int] }
+  deriving (Show)
+  
+homologyDotProduct :: Homology -> Homology -> Int
+homologyDotProduct h1 h2 | not ((genus h1) == (genus h2))
+homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
+  where
+    go :: Int -> Int -> Int
+    go 0 acc = acc + ((A h1)!!0)*((B h2)!!0) - ((A h2)!!0)*((B h1)!!0)
+    go n acc = go (n - 1) (acc + ((A h1)!!n)*((B h2)!!n) - ((A h2)!!n)*((B h1)!!n))
+
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
 instance Monoid Path where
