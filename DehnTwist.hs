@@ -13,13 +13,27 @@ data Homology = Homology { genus :: Int,
                            B :: [Int] }
   deriving (Show)
   
+type HomologyPath = HomologyPath [Homology]
+  
 homologyDotProduct :: Homology -> Homology -> Int
-homologyDotProduct h1 h2 | not ((genus h1) == (genus h2))
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
   where
     go :: Int -> Int -> Int
     go 0 acc = acc + ((A h1)!!0)*((B h2)!!0) - ((A h2)!!0)*((B h1)!!0)
     go n acc = go (n - 1) (acc + ((A h1)!!n)*((B h2)!!n) - ((A h2)!!n)*((B h1)!!n))
+
+homologyAdd :: Homology -> Homology -> Homology
+homologyAdd h1 h2 = Homology (genus h1) (zipWith + (A h1) (A h2)) (zipWith + (B h1) (B h2))
+
+homologyMultiply :: Homology -> Int -> Homology
+homologyMultiply h1 r = Homology (genus h1) (map (* r) (A h1)) (map (* r) (B h1))
+
+homologyDehnTwist :: Homology -> Homology -> Homology
+homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
+
+homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
+homologyDehnTwistSequence [] h1 = h1
+homologyDehnTwistSequence [] (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
