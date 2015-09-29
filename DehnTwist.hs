@@ -54,8 +54,9 @@ findNonZeroIntersection h1 homChoice = go homChoice 0
       | otherwise 
         = go homChoice (count + 1)
 
+        
 calculateSignature :: HomologyPath -> Int
-calculateSignature p1 = 
+calculateSignature p1 = go p1 0
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
