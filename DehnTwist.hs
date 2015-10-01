@@ -8,57 +8,57 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-data Homology = Homology { genus :: Int,
-                           A :: [Int],
-                           B :: [Int] }
-  deriving (Show)
+data Homology = Homology { genus :: Int
+                         , aLoop :: [Int]
+                         , bLoop :: [Int]
+                         } deriving (Show)
   
-type HomologyPath = HomologyPath [Homology]
+type HomologyPath = [Homology]
   
 homologyDotProduct :: Homology -> Homology -> Int
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
   where
     go :: Int -> Int -> Int
-    go 0 acc = acc + ((A h1)!!0)*((B h2)!!0) - ((A h2)!!0)*((B h1)!!0)
-    go n acc = go (n - 1) (acc + ((A h1)!!n)*((B h2)!!n) - ((A h2)!!n)*((B h1)!!n))
+    go 0 acc = acc + ((aLoop h1)!!0)*((bLoop h2)!!0) - ((aLoop h2)!!0)*((bLoop h1)!!0)
+    go n acc = go (n - 1) (acc + ((aLoop h1)!!n)*((bLoop h2)!!n) - ((aLoop h2)!!n)*((bLoop h1)!!n))
 
 homologyAdd :: Homology -> Homology -> Homology
-homologyAdd h1 h2 = Homology (genus h1) (zipWith + (A h1) (A h2)) (zipWith + (B h1) (B h2))
+homologyAdd h1 h2 = Homology (genus h1) (zipWith (+) (aLoop h1) (aLoop h2)) (zipWith (+) (bLoop h1) (bLoop h2))
 
 homologySubtract :: Homology -> Homology -> Homology
-homologySubtract h1 h2 = Homology (genus h1) (zipWith - (A h1) (A h2)) (zipWith - (B h1) (B h2))
+homologySubtract h1 h2 = Homology (genus h1) (zipWith (-) (aLoop h1) (aLoop h2)) (zipWith (-) (bLoop h1) (bLoop h2))
 
 homologyMultiply :: Homology -> Int -> Homology
-homologyMultiply h1 r = Homology (genus h1) (map (* r) (A h1)) (map (* r) (B h1))
+homologyMultiply h1 r = Homology (genus h1) (map (* r) (aLoop h1)) (map (* r) (bLoop h1))
 
 homologyDivide :: Homology -> Int -> Homology
-homologyDivide h1 r = Homology (genus h1) (map (/ r) (A h1)) (map (/ r) (B h1))
+homologyDivide h1 r = Homology (genus h1) (map (div r) (aLoop h1)) (map (div r) (bLoop h1))
 
 homologyDehnTwist :: Homology -> Homology -> Homology
 homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
 homologyDehnTwistSequence [] h1 = h1
-homologyDehnTwistSequence [] (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
+homologyDehnTwistSequence (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
 
-homologySingle Int -> Int -> Int -> Homology
+homologySingle :: Int -> Int -> Int -> Homology
 homologySingle homChoice homIndex genus 
-  | (homChoice == 0) = Homology genus (replicate homIndex 0)++[1]++(replicate (genus-homIndex-1)) (replicate genus 0)
-  | (homChoice == 1) = Homology genus (replicate genus 0) (replicate homIndex 0)++[1]++(replicate (genus-homIndex-1))
+  | (homChoice == 0) = Homology genus ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
+  | (homChoice == 1) = Homology genus (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
 
 findNonZeroIntersection :: Homology -> Maybe Homology
-findNonZeroIntersection h1 homChoice = go homChoice 0
+findNonZeroIntersection h1 = go 0
   where
-    go :: Int -> Maybe Int
+    go :: Int -> Maybe Homology
     go count
       | (count ==(genus h1)) 
         = Nothing
-      | (Not ((homologyDotProduct (homologySingle 0 count (genus h1)) h1) == 0)
+      | (not ((homologyDotProduct (homologySingle 0 count (genus h1)) h1) == 0))
         = Just (homologySingle 0 count (genus h1))
-      | (Not ((homologyDotProduct (homologySingle 1 count (genus h1)) h1) == 0)
+      | (not ((homologyDotProduct (homologySingle 1 count (genus h1)) h1) == 0))
         = Just (homologySingle 1 count (genus h1))
       | otherwise 
-        = go homChoice (count + 1)
+        = go (count + 1)
  
 rref :: Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
@@ -92,18 +92,18 @@ replace n e l = a ++ e : b
   where (a, _ : b) = splitAt n l
 
 
-homologyToList :: Homology -> [Int]
-homologyToList h1 = [(A h1), (B h1)]
+homologyToList :: Homology -> [Rational]
+homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
 
-homologyToMatrices :: Homology -> Homology -> Homology -> [[Int]]
-homologyToMatrices l m mod = [[homologyToList l], [homologyToList m], [homologyToList mod]]
+homologyToMatrices :: Homology -> Homology -> Homology -> [[Rational]]
+homologyToMatrices l m mod = [(homologyToList l), (homologyToList m), (homologyToList mod)]
 
-calculateABC :: Homology -> Homology -> Homology -> [Int]
-calculateABC l m mod = [out!!0, out!!1, out!!2]
+calculateABC :: Homology -> Homology -> Homology -> [Rational]
+calculateABC l m mod = out!!0 ++ out!!1 ++ out!!2
   where
     out = rref (homologyToMatrices l m mod)
 
-calculateDelta :: [Int] -> Int
+calculateDelta :: [Rational] -> Int
 calculateDelta abc 
   | (result < 0) = 1
   | (result == 0) = 0
@@ -115,7 +115,7 @@ calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle = calculateDelta (calculateABC l m mod)
   where
     l = attachingCircle
-    e = findNonZeroIntersection attachingCircle
+    (Just e) = findNonZeroIntersection attachingCircle
     m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
     mod = homologySubtract l (homologyDehnTwistSequence phi l)
     
@@ -124,7 +124,7 @@ calculateSignature p1 = go [] p1 0
   where
     go :: HomologyPath -> HomologyPath -> Int -> Int
     go phi [] acc = acc
-    go phi (x : xs) acc = go (phi ++ [x])) (drop 1 rest) (acc + (calculateSignatureStep phi x))
+    go phi (x : xs) acc = go (phi ++ [x]) xs (acc + (calculateSignatureStep phi x))
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
