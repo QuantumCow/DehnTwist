@@ -2,26 +2,182 @@
 
 import Data.Foldable
 import Data.Monoid
+import Data.List
+import Debug.Trace
+
+tr :: Show a => a -> a
+tr x = traceShow x x
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-data Path = Path { unPath :: [Signed Generator]}
-  deriving (Show)
+data Homology = Homology { genus :: Int
+                         , aLoop :: [Int]
+                         , bLoop :: [Int]
+                         } deriving (Show)
+  
+type HomologyPath = [Homology]
+  
+homologyDotProduct :: Homology -> Homology -> Int
+homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
+  where
+    go :: Int -> Int -> Int
+    go 0 acc = acc + ((aLoop h1)!!0)*((bLoop h2)!!0) - ((aLoop h2)!!0)*((bLoop h1)!!0)
+    go n acc = go (n - 1) (acc + ((aLoop h1)!!n)*((bLoop h2)!!n) - ((aLoop h2)!!n)*((bLoop h1)!!n))
+
+homologyAdd :: Homology -> Homology -> Homology
+homologyAdd h1 h2 = Homology (genus h1) (zipWith (+) (aLoop h1) (aLoop h2)) (zipWith (+) (bLoop h1) (bLoop h2))
+
+homologySubtract :: Homology -> Homology -> Homology
+homologySubtract h1 h2 = Homology (genus h1) (zipWith (-) (aLoop h1) (aLoop h2)) (zipWith (-) (bLoop h1) (bLoop h2))
+
+homologyMultiply :: Homology -> Int -> Homology
+homologyMultiply h1 r = Homology (genus h1) (map (* r) (aLoop h1)) (map (* r) (bLoop h1))
+
+homologyDivide :: Homology -> Int -> Homology
+homologyDivide h1 r = Homology (genus h1) (map (div r) (aLoop h1)) (map (div r) (bLoop h1))
+
+homologyDehnTwist :: Homology -> Homology -> Homology
+homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
+
+homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
+homologyDehnTwistSequence [] h1 = h1
+homologyDehnTwistSequence (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
+
+homologySingle :: Int -> Int -> Int -> Homology
+homologySingle homChoice homIndex genus 
+  | (homChoice == 0) = Homology genus ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
+  | (homChoice == 1) = Homology genus (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
+
+findNonZeroIntersection :: Homology -> Maybe Homology
+findNonZeroIntersection h1 = go 0
+  where
+    go :: Int -> Maybe Homology
+    go count
+      | (count ==(genus h1)) 
+        = Nothing
+      | (not ((homologyDotProduct (homologySingle 0 count (genus h1)) h1) == 0))
+        = Just (homologySingle 0 count (genus h1))
+      | (not ((homologyDotProduct (homologySingle 1 count (genus h1)) h1) == 0))
+        = Just (homologySingle 1 count (genus h1))
+      | otherwise 
+        = go (count + 1)
+ 
+rref :: Eq a => Fractional a => [[a]] -> [[a]]
+rref m = f m 0 [0 .. rows - 1]
+  where rows = length m
+        cols = length $ head m
+ 
+        f m _    []              = m
+        f m lead (r : rs)
+            | indices == Nothing = m
+            | otherwise          = f m' (lead' + 1) rs
+          where indices = find p l
+                p (col, row) = m !! row !! col /= 0
+                l = [(col, row) |
+                    col <- [lead .. cols - 1],
+                    row <- [r .. rows - 1]]
+ 
+                Just (lead', i) = indices
+                newRow = map (/ m !! i !! lead') $ m !! i
+ 
+                m' = zipWith g [0..] $
+                    replace r newRow $
+                    replace i (m !! r) m
+                g n row
+                    | n == r    = row
+                    | otherwise = zipWith h newRow row
+                  where h = subtract . (* row !! lead')
+ 
+replace :: Int -> a -> [a] -> [a]
+{- Replaces the element at the given index. -}
+replace n e l = a ++ e : b
+  where (a, _ : b) = splitAt n l
+
+printHomology :: Homology -> String
+printHomology h1 = ""
+  
+testGenusOne :: HomologyPath
+testGenusOne = lefshetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
+
+testGenusTwoMatsumoto :: HomologyPath
+testGenusTwoMatsumoto = lefshetzFibration (go 0) [0, 1, 2, 3] 2
+  where
+    go :: Int -> HomologyPath
+    go 0 = [Homology 2 [1, 1] [0, 0]] ++ go 1
+    go 1 = [Homology 2 [0, 0] [0, 0]] ++ go 2
+    go 2 = [Homology 2 [0, 0] [1, 1]] ++ go 3
+    go 3 = [Homology 2 [1, 1] [1, 1]]
+    
+
+lefshetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
+lefshetzFibration paths order 0 = go paths order
+  where
+    go :: HomologyPath -> [Int] -> HomologyPath
+    go paths [] = []
+    go paths (x:xs) = [(paths!!x)] ++ (go paths xs)   
+lefshetzFibration paths order n = concat $ replicate n (lefshetzFibration paths order 0)
+
+homologyToList :: Homology -> [Rational]
+homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1) ++ [0])
+
+homologyToMatrices :: Homology -> Homology -> Homology -> [[Rational]]
+homologyToMatrices l m mod = [(homologyToList l), (homologyToList m), (homologyToList mod)]
+
+calculateABC :: Homology -> Homology -> Homology -> [Rational]
+calculateABC l m mod = out!!0 ++ out!!1 ++ out!!2
+  where
+    out = rref (tr (homologyToMatrices l m mod))
+
+calculateDelta :: [Rational] -> Int
+calculateDelta abc 
+  | (result < 0) = 1
+  | (result == 0) = 0
+  | (result > 0) = -1
+  where
+    result = (abc!!0 + abc!!1)*(abc!!1)  
+    
+calculateSignatureStep :: HomologyPath -> Homology -> Int
+calculateSignatureStep phi attachingCircle = calculateDelta (calculateABC l m mod)
+  where
+    l = attachingCircle
+    (Just e) = findNonZeroIntersection attachingCircle
+    m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
+    mod = homologySubtract l (homologyDehnTwistSequence phi l)
+    
+calculateSignature :: HomologyPath -> Int
+calculateSignature p1 = go [] p1 0
+  where
+    go :: HomologyPath -> HomologyPath -> Int -> Int
+    go phi [] acc = acc
+    go phi (x : xs) acc = go (phi ++ [x]) xs (acc + (calculateSignatureStep phi x))
+
+data Path = Path { unPath :: RawPath}
+  deriving (Eq, Show)
 instance Monoid Path where
   mempty = Path []
-  Path a `mappend` Path b = Path (a `mappend` b)        
+  Path a `mappend` Path b = Path (a `mappend` b)
+
+type PathList = [Path]
+
+type RawPath = [Signed Generator]
+
+type RelationPairList = [PathList]
 
 showGenerator :: Generator -> String
-showGenerator (Around i) = (['a'..] !! i) : []
-showGenerator (Through i) = (['a'..] !! i) : "'"
+showGenerator (Around i) = "a" ++ (show i)
+showGenerator (Through i) = "b" ++ (show i)
+
+showSignedGenerator :: (Signed Generator) -> String
+showSignedGenerator (Pos g0) = showGenerator g0
+showSignedGenerator (Neg g0) = (showGenerator g0) ++ "'"
 
 showPath :: Path -> String
 showPath (Path (Pos g0 : rest)) =
   showGenerator g0 ++ " " ++ showPath (Path rest)
 showPath (Path (Neg g0 : rest)) =
-  "-" ++ showGenerator g0 ++ showPath (Path rest)
+  showGenerator g0 ++ "' " ++ showPath (Path rest)
 showPath (Path []) =
   ""
 
@@ -42,7 +198,7 @@ canonicalize (Path (p : rest)) = (Path (p : unPath (canonicalize (Path rest))))
 canonicalize (Path []) = (Path [])
 
 data Signed a = Pos a | Neg a
-              deriving (Show, Functor)
+              deriving (Eq, Show, Functor)
 
 -- | Extract the @a@ from a @Signed a@
 unSigned :: Signed a -> a
@@ -91,3 +247,63 @@ genusNRelators n = go n 0
       Path []
     go n b = 
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
+
+isEquivalent :: Path -> Path -> Int -> Bool
+isEquivalent p1 p2 genus = isIdentity (p1 <> (invert p2)) genus
+      
+isIdentity :: Path -> Int -> Bool
+isIdentity (Path p) genus = go p 0
+  where
+    go :: RawPath -> Int -> Bool
+    go path n | (n == genus*4) = ((cancelInverses path) == [])
+    go [] n = True
+    go path n = if (simplifiable path genus n)
+                  then go (cancelInverses (simplify path genus n)) 0
+                  else go path (n + 1)
+
+subList :: Eq a => [a] -> [a] -> Int
+subList _ [] = -1
+subList as xxs@(x:xs)
+  | all (uncurry (==)) $ zip as xxs = 0
+  | otherwise                       = 1 + subList as xs
+
+simplify :: RawPath -> Int -> Int -> RawPath
+simplify p genus index =
+ go (subList (matchCycleByGenus genus index) p) (2*genus + 1) (unPath (invert (Path (replaceCycleByGenus genus index))))
+  where
+    go :: Int -> Int -> RawPath -> RawPath
+    go (-1) length replacement = p
+    go index length replacement = (take index p) ++ replacement ++ (drop (index + length) p)
+
+-- | 
+cancelInverses :: RawPath -> RawPath
+cancelInverses (Pos g0 : Neg g1 : rest)
+  | g0 == g1      = cancelInverses rest
+cancelInverses (Neg g0 : Pos g1 : rest)
+  | g0 == g1      = cancelInverses rest
+cancelInverses (p : rest) = (p : cancelInverses rest)
+cancelInverses [] = []
+                  
+simplifiable :: RawPath -> Int -> Int -> Bool
+simplifiable p genus index = isInfixOf (matchCycleByGenus genus index) p
+                  
+matchCycleByGenus :: Int -> Int -> RawPath
+matchCycleByGenus genus index = matchCycle (genusNRelators genus) index
+
+replaceCycleByGenus :: Int -> Int -> RawPath
+replaceCycleByGenus genus index = replaceCycle (genusNRelators genus) index
+
+matchCycle :: Path -> Int -> RawPath
+matchCycle (Path raw) n = (take (ceiling (((fromIntegral (length raw)) + 1) / 2.0)) (drop n (cycle raw)))
+
+replaceCycle :: Path -> Int -> RawPath
+replaceCycle (Path raw) n =
+   (take (floor (((fromIntegral (length raw)) - 1) / 2.0)) (drop (n + (ceiling (((fromIntegral (length raw)) + 1) / 2.0))) (cycle raw)))
+
+invert :: Path -> Path
+invert (Path raw) = (Path (go raw))
+  where
+    go :: RawPath -> RawPath
+    go [] = []
+    go (Pos x : rest) = (go rest) ++ [Neg x]
+    go (Neg x : rest) = (go rest) ++ [Pos x]     
