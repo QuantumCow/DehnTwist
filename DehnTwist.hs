@@ -3,6 +3,8 @@
 import Data.Foldable
 import Data.Monoid
 import Data.List
+import Data.Choose
+import Math.LinearEquationSolver
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
@@ -25,8 +27,14 @@ homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
 homologyAdd :: Homology -> Homology -> Homology
 homologyAdd h1 h2 = Homology (genus h1) (zipWith + (A h1) (A h2)) (zipWith + (B h1) (B h2))
 
+homologySubtract :: Homology -> Homology -> Homology
+homologySubtract h1 h2 = Homology (genus h1) (zipWith - (A h1) (A h2)) (zipWith - (B h1) (B h2))
+
 homologyMultiply :: Homology -> Int -> Homology
 homologyMultiply h1 r = Homology (genus h1) (map (* r) (A h1)) (map (* r) (B h1))
+
+homologyDivide :: Homology -> Int -> Homology
+homologyDivide h1 r = Homology (genus h1) (map (/ r) (A h1)) (map (/ r) (B h1))
 
 homologyDehnTwist :: Homology -> Homology -> Homology
 homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
@@ -54,9 +62,77 @@ findNonZeroIntersection h1 homChoice = go homChoice 0
       | otherwise 
         = go homChoice (count + 1)
 
-        
+listPossibility :: Int -> Int -> [Int]
+listPossibility index max = go (listChoose max 3 [0 .. (max-1)])!!index
+  where
+    go :: Choose -> [Int]
+    go ch1 = [at ch1 0] ++ [at ch1 1] ++ [at ch1 2]
+ 
+rref :: Fractional a => [[a]] -> [[a]]
+rref m = f m 0 [0 .. rows - 1]
+  where rows = length m
+        cols = length $ head m
+ 
+        f m _    []              = m
+        f m lead (r : rs)
+            | indices == Nothing = m
+            | otherwise          = f m' (lead' + 1) rs
+          where indices = find p l
+                p (col, row) = m !! row !! col /= 0
+                l = [(col, row) |
+                    col <- [lead .. cols - 1],
+                    row <- [r .. rows - 1]]
+ 
+                Just (lead', i) = indices
+                newRow = map (/ m !! i !! lead') $ m !! i
+ 
+                m' = zipWith g [0..] $
+                    replace r newRow $
+                    replace i (m !! r) m
+                g n row
+                    | n == r    = row
+                    | otherwise = zipWith h newRow row
+                  where h = subtract . (* row !! lead')
+ 
+replace :: Int -> a -> [a] -> [a]
+{- Replaces the element at the given index. -}
+replace n e l = a ++ e : b
+  where (a, _ : b) = splitAt n l
+
+
+homologyToList :: Homology -> [Int]
+homologyToList h1 = [(A h1), (B h1)]
+
+homologyToMatrices :: Homology -> Homology -> Homology -> [[Int]]
+homologyToMatrices l m mod = [[homologyToList l], [homologyToList m], [homologyToList mod]]
+
+calculateABC :: Homology -> Homology -> Homology -> [Int]
+calculateABC l m mod = [out!!0, out!!1, out!!2]
+  where
+    out = rref (homologyToMatrices l m mod)
+
+calculateDelta :: [Int] -> Int
+calculateDelta abc 
+  | (result < 0) = 1
+  | (result == 0) = 0
+  | (result > 0) = -1
+  where
+    result = (abc!!0 + abc!!1)*(abc!!1)  
+    
+calculateSignatureStep :: HomologyPath -> Homology -> Int
+calculateSignatureStep phi attachingCircle = calculateDelta (calculateABC l m mod)
+  where
+    l = attachingCircle
+    e = findNonZeroIntersection attachingCircle
+    m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
+    mod = homologySubtract l (homologyDehnTwistSequence phi l)
+    
 calculateSignature :: HomologyPath -> Int
-calculateSignature p1 = go p1 0
+calculateSignature p1 = go [] p1 0
+  where
+    go :: HomologyPath -> HomologyPath -> Int -> Int
+    go phi [] acc = acc
+    go phi (x : xs) acc = go (phi ++ [x])) (drop 1 rest) (acc + (calculateSignatureStep phi x))
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
