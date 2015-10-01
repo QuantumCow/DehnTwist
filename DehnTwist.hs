@@ -91,9 +91,29 @@ replace :: Int -> a -> [a] -> [a]
 replace n e l = a ++ e : b
   where (a, _ : b) = splitAt n l
 
+testGenusOne :: HomologyPath
+testGenusOne = lefshetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
+
+testGenusTwoMatsumoto :: HomologyPath
+testGenusTwoMatsumoto = lefshetzFibration (go 0) [0, 1, 2, 3] 2
+  where
+    go :: Int -> HomologyPath
+    go 0 = [Homology 2 [1, 1] [0, 0]] ++ go 1
+    go 1 = [Homology 2 [0, 0] [0, 0]] ++ go 2
+    go 2 = [Homology 2 [0, 0] [1, 1]] ++ go 3
+    go 3 = [Homology 2 [1, 1] [1, 1]]
+    
+
+lefshetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
+lefshetzFibration paths order 0 = go paths order
+  where
+    go :: HomologyPath -> [Int] -> HomologyPath
+    go paths [] = []
+    go paths (x:xs) = [(paths!!x)] ++ (go paths xs)   
+lefshetzFibration paths order n = concat $ replicate n (lefshetzFibration paths order 0)
 
 homologyToList :: Homology -> [Rational]
-homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
+homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1) ++ [0])
 
 homologyToMatrices :: Homology -> Homology -> Homology -> [[Rational]]
 homologyToMatrices l m mod = [(homologyToList l), (homologyToList m), (homologyToList mod)]
