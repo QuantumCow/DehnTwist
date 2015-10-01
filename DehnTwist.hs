@@ -3,6 +3,10 @@
 import Data.Foldable
 import Data.Monoid
 import Data.List
+import Debug.Trace
+
+tr :: Show a => a -> a
+tr x = traceShow x x
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
@@ -91,6 +95,9 @@ replace :: Int -> a -> [a] -> [a]
 replace n e l = a ++ e : b
   where (a, _ : b) = splitAt n l
 
+printHomology :: Homology -> String
+printHomology h1 = ""
+  
 testGenusOne :: HomologyPath
 testGenusOne = lefshetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
 
@@ -121,7 +128,7 @@ homologyToMatrices l m mod = [(homologyToList l), (homologyToList m), (homologyT
 calculateABC :: Homology -> Homology -> Homology -> [Rational]
 calculateABC l m mod = out!!0 ++ out!!1 ++ out!!2
   where
-    out = rref (homologyToMatrices l m mod)
+    out = rref (tr (homologyToMatrices l m mod))
 
 calculateDelta :: [Rational] -> Int
 calculateDelta abc 
