@@ -60,7 +60,7 @@ findNonZeroIntersection h1 = go 0
       | otherwise 
         = go (count + 1)
  
-rref :: Fractional a => [[a]] -> [[a]]
+rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
   where rows = length m
         cols = length $ head m
