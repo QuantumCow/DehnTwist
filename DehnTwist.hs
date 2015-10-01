@@ -3,8 +3,6 @@
 import Data.Foldable
 import Data.Monoid
 import Data.List
-import Data.Choose
-import Math.LinearEquationSolver
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
@@ -61,12 +59,6 @@ findNonZeroIntersection h1 homChoice = go homChoice 0
         = Just (homologySingle 1 count (genus h1))
       | otherwise 
         = go homChoice (count + 1)
-
-listPossibility :: Int -> Int -> [Int]
-listPossibility index max = go (listChoose max 3 [0 .. (max-1)])!!index
-  where
-    go :: Choose -> [Int]
-    go ch1 = [at ch1 0] ++ [at ch1 1] ++ [at ch1 2]
  
 rref :: Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
