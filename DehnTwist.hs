@@ -137,7 +137,7 @@ homologyToList :: Homology -> [Rational]
 homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
 
 homologyToMatrices :: Homology -> Homology -> Homology -> [[Rational]]
-homologyToMatrices l m mod = transpose [(homologyToList l), (homologyToList m), (homologyToList mod), (replicate (2 * (genus l)) (toRational 0))]
+homologyToMatrices l m mod = transpose [(homologyToList l), (homologyToList m), (homologyToList mod)]
 
 calculateABC :: Homology -> Homology -> Homology -> [Rational]
 calculateABC l m mod = [(last ((tr out)!!0))] ++ [(last (out!!1))] ++ [(last (out!!2))]
@@ -150,23 +150,24 @@ calculateDelta abc
   | (result == 0) = 0
   | (result > 0) = -1
   where
-    result = (abc!!0 + abc!!1)*(abc!!1)  
+    result = (abc!!0 + abc!!1)*(abc!!0)  
     
 calculateSignatureStep :: HomologyPath -> Homology -> Int
-calculateSignatureStep phi attachingCircle 
-  | testZeroHomology m = -1
+calculateSignatureStep phi attachingCircle
+  | testZeroHomology attachingCircle = -1
+  | testZeroHomology m = 0
   | otherwise = calculateDelta (calculateABC l m mod)
     where
       l = attachingCircle
       (Just e) = findNonZeroIntersection attachingCircle
-      m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
+      m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct e l)
       mod = homologySubtract l (homologyDehnTwistSequence phi l)
     
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0
   where
     go :: HomologyPath -> HomologyPath -> Int -> Int
-    go phi [] acc = acc
+    go phi [] acc = (tr acc)
     go phi (x : xs) acc = go (phi ++ [x]) xs ((tr acc) + (calculateSignatureStep phi x))
 
 data Path = Path { unPath :: RawPath}
