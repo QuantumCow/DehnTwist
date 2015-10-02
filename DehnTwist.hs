@@ -36,7 +36,7 @@ homologyMultiply :: Homology -> Int -> Homology
 homologyMultiply h1 r = Homology (genus h1) (map (* r) (aLoop h1)) (map (* r) (bLoop h1))
 
 homologyDivide :: Homology -> Int -> Homology
-homologyDivide h1 r = Homology (genus h1) (map (div r) (aLoop h1)) (map (div r) (bLoop h1))
+homologyDivide h1 r = Homology (genus h1) (map (`div` r) (aLoop h1)) (map (`div` r) (bLoop h1))
 
 homologyDehnTwist :: Homology -> Homology -> Homology
 homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
@@ -55,7 +55,7 @@ findNonZeroIntersection h1 = go 0
   where
     go :: Int -> Maybe Homology
     go count
-      | (count ==(genus h1)) 
+      | (count == (genus h1)) 
         = Nothing
       | (not ((homologyDotProduct (homologySingle 0 count (genus h1)) h1) == 0))
         = Just (homologySingle 0 count (genus h1))
@@ -95,8 +95,22 @@ replace :: Int -> a -> [a] -> [a]
 replace n e l = a ++ e : b
   where (a, _ : b) = splitAt n l
 
+runTest :: Int
+runTest = calculateSignature testGenusOne
+  
 printHomology :: Homology -> String
 printHomology h1 = ""
+  
+testZeroHomology :: Homology -> Bool
+testZeroHomology h1 = go (aLoop h1) (bLoop h1)
+  where
+    go :: [Int] -> [Int] -> Bool
+    go [] [] = True
+    go (x:xs) (y:ys)
+      | ((x == 0) && (y == 0)) = go xs ys
+      | otherwise = False
+
+      
   
 testGenusOne :: HomologyPath
 testGenusOne = lefshetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
@@ -120,13 +134,13 @@ lefshetzFibration paths order 0 = go paths order
 lefshetzFibration paths order n = concat $ replicate n (lefshetzFibration paths order 0)
 
 homologyToList :: Homology -> [Rational]
-homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1) ++ [0])
+homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
 
 homologyToMatrices :: Homology -> Homology -> Homology -> [[Rational]]
-homologyToMatrices l m mod = [(homologyToList l), (homologyToList m), (homologyToList mod)]
+homologyToMatrices l m mod = transpose [(homologyToList l), (homologyToList m), (homologyToList mod), (replicate (2 * (genus l)) (toRational 0))]
 
 calculateABC :: Homology -> Homology -> Homology -> [Rational]
-calculateABC l m mod = out!!0 ++ out!!1 ++ out!!2
+calculateABC l m mod = [(last ((tr out)!!0))] ++ [(last (out!!1))] ++ [(last (out!!2))]
   where
     out = rref (tr (homologyToMatrices l m mod))
 
@@ -139,19 +153,21 @@ calculateDelta abc
     result = (abc!!0 + abc!!1)*(abc!!1)  
     
 calculateSignatureStep :: HomologyPath -> Homology -> Int
-calculateSignatureStep phi attachingCircle = calculateDelta (calculateABC l m mod)
-  where
-    l = attachingCircle
-    (Just e) = findNonZeroIntersection attachingCircle
-    m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
-    mod = homologySubtract l (homologyDehnTwistSequence phi l)
+calculateSignatureStep phi attachingCircle 
+  | testZeroHomology m = -1
+  | otherwise = calculateDelta (calculateABC l m mod)
+    where
+      l = attachingCircle
+      (Just e) = findNonZeroIntersection attachingCircle
+      m = homologyDivide (homologySubtract e (homologyDehnTwistSequence phi e))  (homologyDotProduct e l)
+      mod = homologySubtract l (homologyDehnTwistSequence phi l)
     
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0
   where
     go :: HomologyPath -> HomologyPath -> Int -> Int
     go phi [] acc = acc
-    go phi (x : xs) acc = go (phi ++ [x]) xs (acc + (calculateSignatureStep phi x))
+    go phi (x : xs) acc = go (phi ++ [x]) xs ((tr acc) + (calculateSignatureStep phi x))
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
