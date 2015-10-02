@@ -15,7 +15,7 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
 data Homology = Homology { genus :: Int
                          , aLoop :: [Int]
                          , bLoop :: [Int]
-                         } deriving (Show)
+                         } deriving (Eq, Show)
   
 type HomologyPath = [Homology]
   
@@ -129,6 +129,9 @@ testGenusNMatsumoto :: Int -> HomologyPath
 testGenusNMatsumoto 2 = testGenusTwoMatsumoto
 testGenusNMatsumoto n = []
 
+testNotGenusOne :: HomologyPath
+testNotGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 1
+
 testGenusTwo :: HomologyPath
 testGenusTwo = lefschetzFibration (go 0) [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
   where
@@ -171,12 +174,11 @@ generateAllHomologies genus = go genus 0
       | (index == genus) = []
       | otherwise = [(homologySingle 0 index genus), (homologySingle 1 index genus)] ++ (go genus (index + 1))
 
-checkLefschetzFibration :: HomologyPath -> Bool
-checkLefschetzFibration paths = go paths 0
-  where 
-    go :: HomologyPath -> Int -> Bool
-    go paths index
-      | otherwise = true    
+isIdentityOn :: HomologyPath -> Homology -> Bool
+isIdentityOn path h1 = (h1 == (homologyDehnTwistSequence path h1))      
+      
+checkLefschetzFibration :: Int -> HomologyPath -> Bool
+checkLefschetzFibration genus paths = foldr (&&) True (map (isIdentityOn paths) (generateAllHomologies genus))
     
 lefschetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
 lefschetzFibration paths order 0 = go paths order
