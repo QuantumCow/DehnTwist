@@ -113,10 +113,10 @@ testZeroHomology h1 = go (aLoop h1) (bLoop h1)
       
   
 testGenusOne :: HomologyPath
-testGenusOne = lefshetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
+testGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
 
 testGenusTwoMatsumoto :: HomologyPath
-testGenusTwoMatsumoto = lefshetzFibration (go 0) [0, 1, 2, 3] 2
+testGenusTwoMatsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
   where
     go :: Int -> HomologyPath
     go 0 = [Homology 2 [1, 1] [0, 0]] ++ go 1
@@ -125,13 +125,66 @@ testGenusTwoMatsumoto = lefshetzFibration (go 0) [0, 1, 2, 3] 2
     go 3 = [Homology 2 [1, 1] [1, 1]]
     
 
-lefshetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
-lefshetzFibration paths order 0 = go paths order
+testGenusNMatsumoto :: Int -> HomologyPath
+testGenusNMatsumoto 2 = testGenusTwoMatsumoto
+testGenusNMatsumoto n = []
+
+testGenusTwo :: HomologyPath
+testGenusTwo = lefschetzFibration (go 0) [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
+  where
+    go :: Int -> HomologyPath
+    go 0 = [Homology 2 [0, 0] [1, 0]] ++ go 1
+    go 1 = [Homology 2 [1, 0] [0, 0]] ++ go 2
+    go 2 = [Homology 2 [0, 0] [-1, 1]] ++ go 3
+    go 3 = [Homology 2 [0, 1] [0, 0]] ++ go 4
+    go 4 = [Homology 2 [0, 0] [0, -1]]
+    
+testGenusTwoA :: HomologyPath
+testGenusTwoA = lefschetzFibration (go 0) [0, 1, 2, 3, 4] 6
+  where
+    go :: Int -> HomologyPath
+    go 0 = [Homology 2 [0, 0] [1, 0]] ++ go 1
+    go 1 = [Homology 2 [1, 0] [0, 0]] ++ go 2
+    go 2 = [Homology 2 [0, 0] [-1, 1]] ++ go 3
+    go 3 = [Homology 2 [0, 1] [0, 0]] ++ go 4
+    go 4 = [Homology 2 [0, 0] [0, -1]]
+    
+testGenusThreeA :: HomologyPath
+testGenusThreeA = lefschetzFibration (go 0) [0, 1, 2, 3, 4, 5] 14
+  where
+    go :: Int -> HomologyPath
+    go 0 = [Homology 3 [0, 0, 0] [1, 0, 0]] ++ go 1
+    go 1 = [Homology 3 [1, 0, 0] [0, 0, 0]] ++ go 2
+    go 2 = [Homology 3 [0, 0, 0] [-1, 1, 0]] ++ go 3
+    go 3 = [Homology 3 [0, 1, 0] [0, 0, 0]] ++ go 4
+    go 4 = [Homology 3 [0, 0, 0] [0, -1, 1]] ++ go 5
+    go 5 = [Homology 3 [0, 0, 1] [0, 0, 0]] ++ go 6
+    go 6 = [Homology 3 [0, 0, 0] [0, 0, -1]] ++ go 7
+    go 7 = [Homology 3 [0, 0, 0] [0, 1, 0]] ++ go 8
+    go 8 = [Homology 3 [0, 0, 0] [0, -1, 0]]
+
+generateAllHomologies :: Int -> HomologyPath
+generateAllHomologies genus = go genus 0
+  where
+    go :: Int -> Int -> HomologyPath
+    go genus index  
+      | (index == genus) = []
+      | otherwise = [(homologySingle 0 index genus), (homologySingle 1 index genus)] ++ (go genus (index + 1))
+
+checkLefschetzFibration :: HomologyPath -> Bool
+checkLefschetzFibration paths = go paths 0
+  where 
+    go :: HomologyPath -> Int -> Bool
+    go paths index
+      | otherwise = true    
+    
+lefschetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
+lefschetzFibration paths order 0 = go paths order
   where
     go :: HomologyPath -> [Int] -> HomologyPath
     go paths [] = []
     go paths (x:xs) = [(paths!!x)] ++ (go paths xs)   
-lefshetzFibration paths order n = concat $ replicate n (lefshetzFibration paths order 0)
+lefschetzFibration paths order n = concat $ replicate n (lefschetzFibration paths order 0)
 
 homologyToList :: Homology -> [Rational]
 homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
