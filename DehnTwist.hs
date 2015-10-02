@@ -39,7 +39,7 @@ homologyDivide :: Homology -> Int -> Homology
 homologyDivide h1 r = Homology (genus h1) (map (`div` r) (aLoop h1)) (map (`div` r) (bLoop h1))
 
 homologyDehnTwist :: Homology -> Homology -> Homology
-homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
+homologyDehnTwist twist path = (homologySubtract path (homologyMultiply twist (homologyDotProduct twist path)))
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
 homologyDehnTwistSequence [] h1 = h1
