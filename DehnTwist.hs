@@ -133,11 +133,25 @@ matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
     go 2 = [Homology 2 [0, 0] [1, 1]] ++ go 3
     go 3 = [Homology 2 [1, 1] [1, 1]]
     
-
+matsumotoPath :: Int -> Int -> Homology
+matsumotoPath index genus
+    | (band == 0) = Homology genus (replicate genus 1) (replicate genus 0)
+    | (index == maxIndex) = Homology genus 
+            (replicate genus 0)
+            ((replicate (band - 1) 0) ++ (replicate (mod genus 2) (-2)) ++ (replicate (band - 1) 0))
+    | (index < maxIndex) = Homology genus 
+            ((replicate (hole - 1) 0) ++ (replicate (genus - (2*(hole - 1))) 1) ++ (replicate (hole - 1) 0))
+            ((replicate (band - 1) 0) ++ [-1] ++ (replicate (genus - (2*band)) 0) ++ [-1] ++ (replicate (band -1) 0))
+    where 
+      hole = (div index 2) + 1
+      band = (div (index + 1) 2)
+      maxIndex = genus + 1 - (mod genus 2)
+      
 genusNMatsumoto :: Int -> HomologyPath
-genusNMatsumoto n
-    | (even n) = matsumoto
-    | (odd n) = matsumoto
+genusNMatsumoto genus = lefschetzFibration paths [0 .. maxIndex] 2
+  where
+    maxIndex = genus + 1 - (mod genus 2)
+    paths = concatMap (\x -> [(matsumotoPath x genus)]) [0 .. maxIndex]
 
 testNotGenusOne :: HomologyPath
 testNotGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 1
@@ -150,7 +164,6 @@ matsumotoB = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4] 6
 
 matsumotoC :: HomologyPath
 matsumotoC = lefschetzFibration genusTwoGenerators [0, 1, 2, 3] 10
-
 
 genusTwoGenerators :: HomologyPath
 genusTwoGenerators = [(Homology 2 [0, 0] [1, 0]),
