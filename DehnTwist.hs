@@ -110,13 +110,22 @@ testZeroHomology h1 = go (aLoop h1) (bLoop h1)
       | ((x == 0) && (y == 0)) = go xs ys
       | otherwise = False
 
-      
+runAllTests :: String
+runAllTests 
+  | ((calculateSignature testGenusOne) /= -8) = "Genus One Failed"
+  | ((calculateSignature matsumoto) /= -4) = "matsumoto Failed"
+  | ((calculateSignature matsumotoA) /= -12) = "matsumotoA Failed"
+  | ((calculateSignature matsumotoB) /= -18) = "matsumotoB Failed"
+  | ((calculateSignature matsumotoC) /= -24) = "matsumotoC Failed"
+  | ((calculateSignature fullerA) /= -48) = "fullerA Failed"
+  | ((calculateSignature fullerB) /= -42) = "fullerB Failed"
+  
   
 testGenusOne :: HomologyPath
 testGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
 
-testGenusTwoMatsumoto :: HomologyPath
-testGenusTwoMatsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
+matsumoto :: HomologyPath
+matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
   where
     go :: Int -> HomologyPath
     go 0 = [Homology 2 [1, 1] [0, 0]] ++ go 1
@@ -125,46 +134,49 @@ testGenusTwoMatsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
     go 3 = [Homology 2 [1, 1] [1, 1]]
     
 
-testGenusNMatsumoto :: Int -> HomologyPath
-testGenusNMatsumoto 2 = testGenusTwoMatsumoto
-testGenusNMatsumoto n = []
+genusNMatsumoto :: Int -> HomologyPath
+genusNMatsumoto n
+    | (even n) = matsumoto
+    | (odd n) = matsumoto
 
 testNotGenusOne :: HomologyPath
 testNotGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 1
 
-testGenusTwo :: HomologyPath
-testGenusTwo = lefschetzFibration (go 0) [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
-  where
-    go :: Int -> HomologyPath
-    go 0 = [Homology 2 [0, 0] [1, 0]] ++ go 1
-    go 1 = [Homology 2 [1, 0] [0, 0]] ++ go 2
-    go 2 = [Homology 2 [0, 0] [-1, 1]] ++ go 3
-    go 3 = [Homology 2 [0, 1] [0, 0]] ++ go 4
-    go 4 = [Homology 2 [0, 0] [0, -1]]
+matsumotoA :: HomologyPath
+matsumotoA = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
     
-testGenusTwoA :: HomologyPath
-testGenusTwoA = lefschetzFibration (go 0) [0, 1, 2, 3, 4] 6
-  where
-    go :: Int -> HomologyPath
-    go 0 = [Homology 2 [0, 0] [1, 0]] ++ go 1
-    go 1 = [Homology 2 [1, 0] [0, 0]] ++ go 2
-    go 2 = [Homology 2 [0, 0] [-1, 1]] ++ go 3
-    go 3 = [Homology 2 [0, 1] [0, 0]] ++ go 4
-    go 4 = [Homology 2 [0, 0] [0, -1]]
+matsumotoB :: HomologyPath
+matsumotoB = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4] 6
+
+matsumotoC :: HomologyPath
+matsumotoC = lefschetzFibration genusTwoGenerators [0, 1, 2, 3] 10
+
+
+genusTwoGenerators :: HomologyPath
+genusTwoGenerators = [(Homology 2 [0, 0] [1, 0]),
+                      (Homology 2 [1, 0] [0, 0]),
+                      (Homology 2 [0, 0] [-1, 1]),
+                      (Homology 2 [0, 1] [0, 0]),
+                      (Homology 2 [0, 0] [0, -1])]
     
-testGenusThreeA :: HomologyPath
-testGenusThreeA = lefschetzFibration (go 0) [0, 1, 2, 3, 4, 5] 14
-  where
-    go :: Int -> HomologyPath
-    go 0 = [Homology 3 [0, 0, 0] [1, 0, 0]] ++ go 1
-    go 1 = [Homology 3 [1, 0, 0] [0, 0, 0]] ++ go 2
-    go 2 = [Homology 3 [0, 0, 0] [-1, 1, 0]] ++ go 3
-    go 3 = [Homology 3 [0, 1, 0] [0, 0, 0]] ++ go 4
-    go 4 = [Homology 3 [0, 0, 0] [0, -1, 1]] ++ go 5
-    go 5 = [Homology 3 [0, 0, 1] [0, 0, 0]] ++ go 6
-    go 6 = [Homology 3 [0, 0, 0] [0, 0, -1]] ++ go 7
-    go 7 = [Homology 3 [0, 0, 0] [0, 1, 0]] ++ go 8
-    go 8 = [Homology 3 [0, 0, 0] [0, -1, 0]]
+fullerA :: HomologyPath
+fullerA = lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 14
+
+fullerB :: HomologyPath
+fullerB = (lefschetzFibration genusThreeGenerators [7, 8, 3, 2, 1, 0, 4, 3, 2, 1, 5, 4, 3, 2] 1) ++
+          (lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 10)
+
+genusThreeGenerators :: HomologyPath
+genusThreeGenerators = [(Homology 3 [0, 0, 0] [1, 0, 0]),
+                        (Homology 3 [1, 0, 0] [0, 0, 0]),
+                        (Homology 3 [0, 0, 0] [-1, 1, 0]),
+                        (Homology 3 [0, 1, 0] [0, 0, 0]),
+                        (Homology 3 [0, 0, 0] [0, -1, 1]),
+                        (Homology 3 [0, 0, 1] [0, 0, 0]),
+                        (Homology 3 [0, 0, 0] [0, 0, -1]),
+                        (Homology 3 [0, 0, 0] [0, 1, 0]),
+                        (Homology 3 [0, 0, 0] [0, -1, 0])]
+
 
 generateAllHomologies :: Int -> HomologyPath
 generateAllHomologies genus = go genus 0
