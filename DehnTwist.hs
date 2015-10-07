@@ -18,7 +18,21 @@ data Homology = Homology { genus :: Int
                          } deriving (Eq, Show)
   
 type HomologyPath = [Homology]
-  
+
+homologyPrint :: Homology -> String
+homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
+  where
+    go :: [Int] -> [Int] -> Int -> String
+    go [] [] count  = ""
+    go (x:xs) (y:ys) count = (if (not (x == 0)) then ((show x) ++ "a" ++ (show count) ++ "+") else "") ++
+                             (if (not (y == 0)) then ((show y) ++ "b" ++ (show count) ++ "+") else "") ++
+                              go xs ys (count + 1)
+
+homologyPathPrint :: HomologyPath -> String
+homologyPathPrint [] = ""
+homologyPathPrint (x:xs) = ", " ++ (homologyPrint x) ++ (homologyPathPrint xs)
+                              
+                              
 homologyDotProduct :: Homology -> Homology -> Int
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
   where
@@ -166,11 +180,11 @@ matsumotoC :: HomologyPath
 matsumotoC = lefschetzFibration genusTwoGenerators [0, 1, 2, 3] 10
 
 genusTwoGenerators :: HomologyPath
-genusTwoGenerators = [(Homology 2 [0, 0] [1, 0]),
+genusTwoGenerators = [(Homology 2 [0, 0] [-1, 0]),
                       (Homology 2 [1, 0] [0, 0]),
-                      (Homology 2 [0, 0] [-1, 1]),
+                      (Homology 2 [0, 0] [1, -1]),
                       (Homology 2 [0, 1] [0, 0]),
-                      (Homology 2 [0, 0] [0, -1])]
+                      (Homology 2 [0, 0] [0, 1])]
     
 fullerA :: HomologyPath
 fullerA = lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 14
@@ -234,9 +248,9 @@ calculateDelta abc
     
 calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
-  | testZeroHomology attachingCircle = -1
-  | testZeroHomology m = 0
-  | otherwise = calculateDelta (calculateABC l m mod)
+  | testZeroHomology attachingCircle = trace ("Signature Step: Null Homology, Add -1") (-1)
+  | testZeroHomology m = trace ("Signature Step: m is Null, Add 0") 0
+  | otherwise = trace ("Signature Step:") (calculateDelta (calculateABC l m mod))
     where
       l = attachingCircle
       (Just e) = findNonZeroIntersection attachingCircle
