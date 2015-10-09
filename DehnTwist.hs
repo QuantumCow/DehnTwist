@@ -53,7 +53,7 @@ homologyDivide :: Homology -> Int -> Homology
 homologyDivide h1 r = Homology (genus h1) (map (`div` r) (aLoop h1)) (map (`div` r) (bLoop h1))
 
 homologyDehnTwist :: Homology -> Homology -> Homology
-homologyDehnTwist twist path = (homologySubtract path (homologyMultiply twist (homologyDotProduct twist path)))
+homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
 homologyDehnTwistSequence [] h1 = h1
@@ -133,7 +133,7 @@ runAllTests
   | ((calculateSignature matsumotoC) /= -24) = "matsumotoC Failed"
   | ((calculateSignature fullerA) /= -48) = "fullerA Failed"
   | ((calculateSignature fullerB) /= -42) = "fullerB Failed"
-  
+
   
 testGenusOne :: HomologyPath
 testGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 6
@@ -144,28 +144,43 @@ matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
     go :: Int -> HomologyPath
     go 0 = [Homology 2 [1, 1] [0, 0]] ++ go 1
     go 1 = [Homology 2 [0, 0] [0, 0]] ++ go 2
-    go 2 = [Homology 2 [0, 0] [1, 1]] ++ go 3
-    go 3 = [Homology 2 [1, 1] [1, 1]]
+    go 2 = [Homology 2 [0, 0] [-1, -1]] ++ go 3
+    go 3 = [Homology 2 [1, 1] [-1, -1]]
     
 matsumotoPath :: Int -> Int -> Homology
 matsumotoPath index genus
     | (band == 0) = Homology genus (replicate genus 1) (replicate genus 0)
-    | (index == maxIndex) = Homology genus 
+    | ((odd genus) && (index == a)) = Homology genus
             (replicate genus 0)
-            ((replicate (band - 1) 0) ++ (replicate (mod genus 2) (-2)) ++ (replicate (band - 1) 0))
+            ((replicate (div genus 2) 0) ++ [1] ++ (replicate (div genus 2) 0))
+    | ((odd genus) && (index == b)) = Homology genus
+            (replicate genus 0)
+            ((replicate (div genus 2) 0) ++ [-1] ++ (replicate (div genus 2) 0))
+    | ((odd genus) && (index == genus)) = Homology genus
+            (replicate genus 0)
+            ((replicate (div genus 2) 0) ++ [-2] ++ (replicate (div genus 2) 0))
+    | ((even genus) && (index == c)) = Homology genus (replicate genus 0) (replicate genus 1)
     | (index < maxIndex) = Homology genus 
             ((replicate (hole - 1) 0) ++ (replicate (genus - (2*(hole - 1))) 1) ++ (replicate (hole - 1) 0))
             ((replicate (band - 1) 0) ++ [-1] ++ (replicate (genus - (2*band)) 0) ++ [-1] ++ (replicate (band -1) 0))
     where 
       hole = (div index 2) + 1
       band = (div (index + 1) 2)
-      maxIndex = genus + 1 - (mod genus 2)
-      
+      c = genus + 1
+      a = genus + 1
+      b = genus + 2
+      maxIndex = if (even genus) then c else b
+     
 genusNMatsumoto :: Int -> HomologyPath
-genusNMatsumoto genus = lefschetzFibration paths [0 .. maxIndex] 2
-  where
-    maxIndex = genus + 1 - (mod genus 2)
-    paths = concatMap (\x -> [(matsumotoPath x genus)]) [0 .. maxIndex]
+genusNMatsumoto genus 
+    | (even genus) = lefschetzFibration paths [0 .. c] 2
+    | (odd genus) = lefschetzFibration paths ([0 .. a] ++ [a, b, b]) 2
+    where
+      c = genus + 1
+      a = genus + 1
+      b = genus + 2
+      maxIndex = if (even genus) then c else b
+      paths = concatMap (\x -> [(matsumotoPath x genus)]) [0 .. maxIndex]
 
 testNotGenusOne :: HomologyPath
 testNotGenusOne = lefschetzFibration [(homologySingle 0 0 1), (homologySingle 1 0 1)] [0, 1] 1
@@ -216,8 +231,9 @@ generateAllHomologies genus = go genus 0
 isIdentityOn :: HomologyPath -> Homology -> Bool
 isIdentityOn path h1 = (h1 == (homologyDehnTwistSequence path h1))      
       
-checkLefschetzFibration :: Int -> HomologyPath -> Bool
-checkLefschetzFibration genus paths = foldr (&&) True (map (isIdentityOn paths) (generateAllHomologies genus))
+checkLefschetzFibration :: HomologyPath -> Bool
+checkLefschetzFibration [] = True
+checkLefschetzFibration paths = foldr (&&) True (map (isIdentityOn paths) (generateAllHomologies (length (aLoop (paths!!0)))))
     
 lefschetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
 lefschetzFibration paths order 0 = go paths order
@@ -226,6 +242,9 @@ lefschetzFibration paths order 0 = go paths order
     go paths [] = []
     go paths (x:xs) = [(paths!!x)] ++ (go paths xs)   
 lefschetzFibration paths order n = concat $ replicate n (lefschetzFibration paths order 0)
+
+rotateMonodromy :: HomologyPath -> Int -> HomologyPath
+rotateMonodromy h1 n = take (length h1) (drop n (cycle h1))
 
 homologyToList :: Homology -> [Rational]
 homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
@@ -254,7 +273,7 @@ calculateSignatureStep phi attachingCircle
     where
       l = attachingCircle
       (Just e) = findNonZeroIntersection attachingCircle
-      m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct e l)
+      m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct l e)
       mod = homologySubtract l (homologyDehnTwistSequence phi l)
     
 calculateSignature :: HomologyPath -> Int
