@@ -3,6 +3,7 @@
 import Data.Foldable
 import Data.Monoid
 import Data.List
+import Data.Ratio
 import Debug.Trace
 
 tr :: Show a => a -> a
@@ -12,13 +13,29 @@ data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
 
-data Homology = Homology { genus :: Int
-                         , aLoop :: [Int]
+data Homology = Homology { aLoop :: [Int]
                          , bLoop :: [Int]
                          } deriving (Eq, Show)
-  
+
+genus :: Homology -> Int
+genus h1 = length(aLoop h1)
+                         
 type HomologyPath = [Homology]
 
+data RationalHomology = RationalHomology { aLoopR :: [Rational]
+                                         , bLoopR :: [Rational]
+                                         } deriving (Eq, Show)
+
+type RationalHomologyPath = [RationalHomology]
+                                      
+toIntegerHomology :: RationalHomology -> RationalHomology
+toIntegerHomology rh = RationalHomology (map ((toRational mult) *) (aLoopR rh)) (map ((toRational mult) *) (bLoopR rh))
+    where
+      mult = rationalHomologyLCM rh
+                                         
+rationalHomologyLCM :: RationalHomology -> Integer
+rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
+                                         
 homologyPrint :: Homology -> String
 homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
   where
@@ -264,6 +281,12 @@ calculateDelta abc
   | (result > 0) = -1
   where
     result = (abc!!0 + abc!!1)*(abc!!0)  
+    
+generateRelationBasis :: Homology -> Int -> RationalHomologyPath
+generateRelationBasis gamma genus = map go (generateAllHomologies genus)
+  where
+    go :: Homology -> RationalHomology
+    go hom = 
     
 calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
