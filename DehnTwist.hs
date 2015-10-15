@@ -39,6 +39,9 @@ toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoopR rh)
                                          
 rationalHomologyLCM :: RationalHomology -> Integer
 rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
+
+homologyLCM :: Homology -> Integer
+homologyLCM h1 = foldl lcm 1 ((aLoop h1) ++ (bLoop h1)))
                                          
 homologyPrint :: Homology -> String
 homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
@@ -97,6 +100,133 @@ homologySingle homChoice homIndex genus
   | (homChoice == 0) = Homology ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
   | (homChoice == 1) = Homology (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
 
+homologyNegate :: Homology -> Homology
+homologyNegate h1 = homology (genus h1) (map (0 -) (aLoop h1)) (map (0 -) (bLoop h1))
+
+euc :: (Integral a) => a -> a -> (a, a)
+euc a b = case b of
+            1 -> (0, 1)
+            _ -> let (e, f) = euc b d
+                 in (f, e - c*f)
+  where c = a `div` b
+        d = a `mod` b
+
+-- | This will return a homology which is a simple closed curve
+-- the original homology will be some multiple of this 
+homologySCC :: Homology -> Homology
+homologySCC h1 = homologyDivide h1 (homologyLCM h1)
+
+-- | This will return true if the homology represents a simple closed curve
+isSCC :: Homology -> Bool
+isSCC h1 = ((homologyLCM h1) == 1)
+
+-- | This will return a homology b such that a . b = 1
+homologyComplement :: Homology -> Maybe Homology
+homologyComplement h1
+    | testZeroHomology h1 
+      = Nothing    
+    | not (unit == nothing)) 
+      = Just (unitHomologyComplement unit g)
+    | not ((mGen == nothing) || (nGen == nothing))
+      = Just (primeHomologyComplement mGen nGen g)
+    where
+      g = genus h1
+      unit = findUnit h1
+      mGen = findNonZero h1
+      nGen = findRelPrime h1 mGen
+
+-- | This will return a homology represented by two generators
+doubleHomology :: Int -> Int -> Generator -> Int -> Generator
+doubleHomology g a (Around x) b (Around y)
+   | x < y
+   = Homology (replicate g 0)
+              ((replicate x 0) ++ [a] ++ (replicate (y - x - 1)) ++ [b] ++ (replicate (g - y - 1) 0))
+   | otherwise
+   = Homology (replicate g 0)
+              ((replicate y 0) ++ [b] ++ (replicate (x - y - 1)) ++ [a] ++ (replicate (g - x - 1) 0))
+doubleHomology g a (Around x) b (Through y) 
+   = Homology ((replicate x 0) ++ [a] ++ (replicate (g - x - 1)))
+              ((replicate y 0) ++ [b] ++ (replicate (g - y - 1)))
+doubleHomology g a (Through x) b (Through y) 
+   | x < y
+   = Homology ((replicate x 0) ++ [a] ++ (replicate (y - x - 1)) ++ [b] ++ (replicate (g - y - 1) 0))
+              (replicate g 0)
+   | otherwise
+   = Homology ((replicate y 0) ++ [b] ++ (replicate (x - y - 1)) ++ [a] ++ (replicate (g - x - 1) 0))
+              (replicate g 0)
+doubleHomology g a (Through x) b (Around y) 
+   = Homology ((replicate y 0) ++ [b] ++ (replicate (g - y - 1)))
+              ((replicate x 0) ++ [a] ++ (replicate (g - x - 1)))
+     
+getHomology :: homology -> Generator -> Int
+getHomology h1 (Around g1) = (aLoop h1)!!g1
+getHomology h1 (Through g1) = (bLoop h1)!!g1
+
+primeHomologyComplement :: homology -> Maybe Generator -> Maybe Generator -> Maybe homology
+primeHomologyComplement h1 (Just (Around g1)) (Just (Around g2)) 
+      = Just (doubleHomology g a (Through g1) b (Through g2))
+primeHomologyComplement h1 (Just (Around g1)) (Just (Through g2)) 
+      = Just (doubleHomology g a (Through g1) (-b) (Around g2))
+primeHomologyComplement h1 (Just (Through g1)) (Just (Through g2)) 
+      = Just (doubleHomology g (-a) (Around g1) (-b) (Around g2))
+primeHomologyComplement h1 (Just (Through g1)) (Just (Around g2)) 
+      = Just (doubleHomology g (-a) (Around g1) b (Through g2))
+primeHomologyComplement h1 x y = Nothing
+    where
+      (a, b) = (euc (getHomology h1 g1) (getHomology h1 g2))
+      g = genus h1
+      
+unitHomologyComplement :: Signed Generator -> Int -> Homology
+unitHomologyComplement (Pos (Around x)) g = homologySingle 1 x g
+unitHomologyComplement (Pos (Through x)) g = homologyNegate (homologySingle 0 x g)
+unitHomologyComplement (Neg (Around x)) g = homologyNegate (homologySingle 1 x g)
+unitHomologyComplement (Neg (Through x)) g = homologySingle 0 x g
+
+findNonZero :: Homology -> Maybe Generator 
+findNonZero h1 
+    | not (firstA == Nothing)
+       = Just (Generator (Around firstA))
+    | not (firstB == Nothing)
+       = Just (Generator (Through firstB))
+    | otherwise
+       = Nothing
+    where 
+      firstA = (findIndex (not (0 ==)) (aLoop h1))
+      firstB = (findIndex (not (0 ==)) (bLoop h1))
+
+findUnit :: Homology -> Maybe Signed Generator
+findUnit h1
+    | not (firstAOne == Nothing)
+      = Just (Pos (Generator (Around firstAOne)))
+    | not (firstANegOne == Nothing)
+      = Just (Neg (Generator (Around firstANegOne)))
+    | not (firstBOne == Nothing)
+      = Just (Pos (Generator (Through firstBOne)))
+    | not (firstBNegOne == Nothing)
+      = Just (Neg (Generator (Through firstBNegOne)))
+    | otherwise
+      = Nothing
+    where
+      firstAOne = (elemIndex 1 (aLoop h1))
+      firstANegOne = (elemIndex -1 (aLoop h1))
+      firstBOne = (elemIndex 1 (bLoop h1))
+      firstBNegOne = (elemIndex -1 (bLoop h1))
+
+findRelPrime :: Homology -> Generator -> Maybe Generator
+findRelPrime h1 g1 
+    | not (firstAPrime == Nothing)
+      = Just (Generator (Around firstAPrime))
+    | not (firstBPrime == Nothing)
+      = Just (Generator (Through firstBPrime))
+    | otherwise
+      = Nothing
+    where
+      m = if (g1 == Around x) then (aLoop h1)!!x else (bLoop h1)!!x
+      isRelPrime :: Int -> Bool
+      isRelPrime n = (1 == (gcd m n))
+      firstAPrime = (findIndex (isRelPrime m) aLoop h1)
+      firstBPrime = (findIndex (isRelPrime m) bLoop h1)
+      
 findNonZeroIntersection :: Homology -> Maybe Homology
 findNonZeroIntersection h1 = go 0
   where
