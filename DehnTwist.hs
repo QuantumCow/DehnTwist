@@ -137,12 +137,12 @@ isSCC h1 = ((homologyLCM h1) == 1)
 -- | This will return a homology b such that a . b = 1
 homologyComplement :: Homology -> Maybe Homology
 homologyComplement h1
-    | testZeroHomology h1 
-      = Nothing    
     | not (unit == Nothing)
       = Just (unitHomologyComplement (fromJust unit) g)
     | not ((mGen == Nothing) || (nGen == Nothing))
       = Just (primeHomologyComplement h1 (fromJust mGen) (fromJust nGen))
+    | otherwise
+      = Nothing
     where
       g = genus h1
       unit = findUnit h1
@@ -152,22 +152,22 @@ homologyComplement h1
 -- | This will return a homology represented by two generators
 doubleHomology :: Int -> Integer -> Generator -> Integer -> Generator -> Homology
 doubleHomology g a (Around x) b (Around y)
-   | x < y
-   = Homology (replicate g 0)
-              ((replicate x 0) ++ [a] ++ (replicate (y - x - 1) 0) ++ [b] ++ (replicate (g - y - 1) 0))
-   | otherwise
-   = Homology (replicate g 0)
-              ((replicate y 0) ++ [b] ++ (replicate (x - y - 1) 0) ++ [a] ++ (replicate (g - x - 1) 0))
-doubleHomology g a (Around x) b (Through y) 
-   = Homology ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
-              ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
-doubleHomology g a (Through x) b (Through y) 
-   | x < y
+  | x < y
    = Homology ((replicate x 0) ++ [a] ++ (replicate (y - x - 1) 0) ++ [b] ++ (replicate (g - y - 1) 0))
               (replicate g 0)
    | otherwise
    = Homology ((replicate y 0) ++ [b] ++ (replicate (x - y - 1) 0) ++ [a] ++ (replicate (g - x - 1) 0))
               (replicate g 0)
+doubleHomology g a (Around x) b (Through y) 
+   = Homology ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
+              ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
+doubleHomology g a (Through x) b (Through y) 
+    | x < y
+   = Homology (replicate g 0)
+              ((replicate x 0) ++ [a] ++ (replicate (y - x - 1) 0) ++ [b] ++ (replicate (g - y - 1) 0))
+   | otherwise
+   = Homology (replicate g 0)
+              ((replicate y 0) ++ [b] ++ (replicate (x - y - 1) 0) ++ [a] ++ (replicate (g - x - 1) 0))
 doubleHomology g a (Through x) b (Around y) 
    = Homology ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
               ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
