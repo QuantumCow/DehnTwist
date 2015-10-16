@@ -304,7 +304,11 @@ findNonZeroIntersection h1 = go 0
         = Just (homologySingle (Through count) (genus h1))
       | otherwise 
         = go (count + 1)
- 
+
+showMatrix :: [[Rational]] -> [[Rational]]
+showMatrix [] = []
+showMatrix (x:xs) = traceShow (map numerator x) ([x]++(showMatrix xs))
+        
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
   where rows = length m
@@ -339,8 +343,12 @@ replace n e l = a ++ e : b
 runTest :: Int
 runTest = calculateSignature testGenusOne
   
-printHomology :: Homology -> String
-printHomology h1 = ""
+printHomology :: Homology -> Homology
+printHomology h1 = go h1 [aLoop h1, bLoop h1]
+  where
+    go :: Homology -> [[Integer]] -> Homology
+    go h1 [] = h1
+    go h1 (x:xs) = traceShow x (go h1 xs)
   
 testZeroHomology :: Homology -> Bool
 testZeroHomology h1 = go (aLoop h1) (bLoop h1)
@@ -351,6 +359,9 @@ testZeroHomology h1 = go (aLoop h1) (bLoop h1)
       | ((x == 0) && (y == 0)) = go xs ys
       | otherwise = False
 
+printAllTests :: [(Integer, Integer)]
+printAllTests = (zip [-8, -4, -12, -18, -24, -48, -42] (map (toInteger . calculateSignature) [testGenusOne, matsumoto, matsumotoA, matsumotoB, matsumotoC, fullerA, fullerB]))
+      
 runAllTests :: String
 runAllTests 
   | ((calculateSignature testGenusOne) /= -8) = "Genus One Failed"
@@ -483,9 +494,9 @@ homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
 
 calculateABC :: Homology -> Homology -> [Homology] -> [Rational]
-calculateABC l m mod = [(last ((tr out)!!0))] ++ [(last (out!!1))]
+calculateABC l m mod = [(last (out!!0))] ++ [(last (out!!1))]
   where
-    out = rref (tr (homologyToMatrices l m mod))
+    out = showMatrix (rref (showMatrix (homologyToMatrices l m mod)))
 
 calculateDelta :: [Rational] -> Int
 calculateDelta abc 
@@ -515,7 +526,7 @@ calculateSignatureStep phi attachingCircle
       basis = generateRemainingBasis l
       e = (basis!!0)!!1
       m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct l e)
-      mod = map (generateRelation phi) (drop 1 (concat basis))
+      mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
     
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0
