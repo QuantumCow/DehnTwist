@@ -512,9 +512,10 @@ calculateSignatureStep phi attachingCircle
   | otherwise = trace ("Signature Step:") (calculateDelta (calculateABC l m mod))
     where
       l = attachingCircle
-      (Just e) = findNonZeroIntersection attachingCircle
+      basis = generateRemainingBasis l
+      e = (basis!!0)!!1
       m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct l e)
-      mod = map (generateRelation phi) (generateRelationBasis l e)
+      mod = map (generateRelation phi) (drop 1 (concat basis))
     
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0
