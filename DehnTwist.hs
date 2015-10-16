@@ -53,8 +53,12 @@ toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoopR rh)
 rationalHomologyLCM :: RationalHomology -> Integer
 rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
 
+nonZero :: [Integer] -> [Integer]
+nonZero [] = []
+nonZero (x:xs) = if (x == 0) then (nonZero xs) else [x] ++ (nonZero xs)
+
 homologyLCM :: Homology -> Integer
-homologyLCM h1 = foldl lcm 1 ((aLoop h1) ++ (bLoop h1))
+homologyLCM h1 = foldl lcm 1 (nonZero ((aLoop h1) ++ (bLoop h1)))
                                          
 homologyPrint :: Homology -> String
 homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
@@ -128,11 +132,46 @@ euc a b = case b of
 -- | This will return a homology which is a simple closed curve
 -- the original homology will be some multiple of this 
 homologySCC :: Homology -> Homology
-homologySCC h1 = homologyDivide h1 (homologyLCM h1)
+homologySCC h1 
+    | (testZeroHomology h1) = h1
+    | otherwise             = homologyDivide h1 (tr (homologyLCM (tr h1)))
 
 -- | This will return true if the homology represents a simple closed curve
 isSCC :: Homology -> Bool
 isSCC h1 = ((homologyLCM h1) == 1)
+
+generateAllHomologyPairs :: Int -> [HomologyPath]
+generateAllHomologyPairs g = go (generateAllHomologies g) []
+  where
+    go :: HomologyPath ->  [HomologyPath] -> [HomologyPath]
+    go [] acc = acc
+    go (x:y:rest) acc = go rest (acc ++ [[x, y]])    
+    
+generateRemainingBasis :: Homology -> [HomologyPath]
+generateRemainingBasis h1A = go [[h1A, (fromJust (homologyComplement h1A))]] (generateAllHomologyPairs g)
+  where
+    g = (genus h1A)
+    go :: [HomologyPath] -> [HomologyPath] -> [HomologyPath]
+    go hAcc [] = hAcc
+    go hAcc (x:rest)
+      | (length hAcc) == g
+        = hAcc
+      | otherwise
+        = if (nextPair == []) then (go hAcc rest) else (go (hAcc ++ [nextPair]) rest)
+            where 
+               nextPair = (nextBasisPair x hAcc)
+
+nextBasisPair :: HomologyPath -> [HomologyPath] -> HomologyPath
+nextBasisPair [h1A, h1B] hAcc = go h1A h1B hAcc
+  where
+    go :: Homology -> Homology -> [HomologyPath] -> HomologyPath
+    go h2A h2B [] = if (not ((testZeroHomology h2A) || (testZeroHomology h2B))) then [h2A, h2B] else []
+    go h2A h2B (x:xs) = go (homologySCC (subtractOutAcc h2A x)) (homologySCC (subtractOutAcc h2B x)) xs
+
+subtractOutAcc :: Homology -> HomologyPath -> Homology
+subtractOutAcc h1 [h1A, h1B] = homologyAdd (homologySubtract h1 (homologyMultiply h1A (homologyDotProduct h1 h1B)))
+                                           (homologyMultiply h1B (homologyDotProduct h1 h1A))
+
 
 -- | This will return a homology b such that a . b = 1
 homologyComplement :: Homology -> Maybe Homology
