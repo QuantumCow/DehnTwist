@@ -69,9 +69,7 @@ homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
                               go xs ys (count + 1)
 
 homologyPathPrint :: HomologyPath -> String
-homologyPathPrint [] = ""
-homologyPathPrint (x:xs) = ", " ++ (homologyPrint x) ++ (homologyPathPrint xs)
-
+homologyPathPrint = intercalate ", " . map homologyPrint
 
 homologyDotProduct :: Homology -> Homology -> Integer
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
