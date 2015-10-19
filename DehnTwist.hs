@@ -26,32 +26,30 @@ stripGenerator :: Generator -> Int
 stripGenerator (Around x) = x
 stripGenerator (Through x) = x
 
-data Homology = Homology { aLoop :: [Integer]
-                         , bLoop :: [Integer]
-                         } deriving (Eq, Show)
+data Homology' a = Homology { aLoop :: [a]
+                            , bLoop :: [a]
+                            } deriving (Eq, Show)
 
-genus :: Homology -> Int
-genus h1 = length(aLoop h1)
+type Homology = Homology' Integer
+type RationalHomology = Homology' Rational
+type HomologyPath' a = [Homology' a]
+type HomologyPath = HomologyPath' Integer
+type RationalHomologyPath = HomologyPath' Rational
 
-type HomologyPath = [Homology]
-
-data RationalHomology = RationalHomology { aLoopR :: [Rational]
-                                         , bLoopR :: [Rational]
-                                         } deriving (Eq, Show)
-
-type RationalHomologyPath = [RationalHomology]
+genus :: Homology' a -> Int
+genus h1 = length (aLoop h1)
 
 rationalize :: Homology -> RationalHomology
-rationalize h = RationalHomology (map toRational (aLoop h)) (map toRational (bLoop h))
+rationalize h = Homology (map toRational (aLoop h)) (map toRational (bLoop h))
 
 
 toIntegerHomology :: RationalHomology -> Homology
-toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoopR rh)) (map (floor . ((toRational mult) *)) (bLoopR rh))
+toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoop rh)) (map (floor . ((toRational mult) *)) (bLoop rh))
     where
       mult = rationalHomologyLCM rh
 
 rationalHomologyLCM :: RationalHomology -> Integer
-rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
+rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoop rh) ++ (bLoop rh)))
 
 nonZero :: [Integer] -> [Integer]
 nonZero = filter (/= 0)
@@ -64,45 +62,32 @@ homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
   where
     go :: [Integer] -> [Integer] -> Integer -> String
     go [] [] count  = ""
-    go (x:xs) (y:ys) count = (if (not (x == 0)) then ((show x) ++ "a" ++ (show count) ++ "+") else "") ++
-                             (if (not (y == 0)) then ((show y) ++ "b" ++ (show count) ++ "+") else "") ++
+    go (x:xs) (y:ys) count = (if x /= 0 then ((show x) ++ "a" ++ (show count) ++ "+") else "") ++
+                             (if y /= 0 then ((show y) ++ "b" ++ (show count) ++ "+") else "") ++
                               go xs ys (count + 1)
 
 homologyPathPrint :: HomologyPath -> String
 homologyPathPrint = intercalate ", " . map homologyPrint
 
-homologyDotProduct :: Homology -> Homology -> Integer
+homologyDotProduct :: Num a => Homology' a -> Homology' a -> a
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
   where
-    go :: Int -> Integer -> Integer
     go 0 acc = acc + ((aLoop h1)!!0)*((bLoop h2)!!0) - ((aLoop h2)!!0)*((bLoop h1)!!0)
     go n acc = go (n - 1) (acc + ((aLoop h1)!!n)*((bLoop h2)!!n) - ((aLoop h2)!!n)*((bLoop h1)!!n))
 
-homologyAdd :: Homology -> Homology -> Homology
+homologyAdd :: Num a => Homology' a -> Homology' a -> Homology' a
 homologyAdd h1 h2 = Homology (zipWith (+) (aLoop h1) (aLoop h2)) (zipWith (+) (bLoop h1) (bLoop h2))
 
-homologySubtract :: Homology -> Homology -> Homology
+homologySubtract :: Num a => Homology' a -> Homology' a -> Homology' a
 homologySubtract h1 h2 = Homology (zipWith (-) (aLoop h1) (aLoop h2)) (zipWith (-) (bLoop h1) (bLoop h2))
 
-homologyMultiply :: Homology -> Integer -> Homology
+homologyMultiply :: Num a => Homology' a -> a -> Homology' a
 homologyMultiply h1 r = Homology (map (* r) (aLoop h1)) (map (* r) (bLoop h1))
 
-homologyDivide :: Homology -> Integer -> Homology
+homologyDivide :: Integral a => Homology' a -> a -> Homology' a
 homologyDivide h1 r = Homology (map (`div` r) (aLoop h1)) (map (`div` r) (bLoop h1))
 
-rationalHomologyAdd :: RationalHomology -> RationalHomology -> RationalHomology
-rationalHomologyAdd h1 h2 = RationalHomology (zipWith (+) (aLoopR h1) (aLoopR h2)) (zipWith (+) (bLoopR h1) (bLoopR h2))
-
-rationalHomologySubtract :: RationalHomology -> RationalHomology -> RationalHomology
-rationalHomologySubtract h1 h2 = RationalHomology (zipWith (-) (aLoopR h1) (aLoopR h2)) (zipWith (-) (bLoopR h1) (bLoopR h2))
-
-rationalHomologyMultiply :: RationalHomology -> Rational -> RationalHomology
-rationalHomologyMultiply h1 r = RationalHomology (map (* r) (aLoopR h1)) (map (* r) (bLoopR h1))
-
-rationalHomologyDivide :: RationalHomology -> Rational -> RationalHomology
-rationalHomologyDivide h1 r = RationalHomology (map (/ r) (aLoopR h1)) (map (/ r) (bLoopR h1))
-
-homologyDehnTwist :: Homology -> Homology -> Homology
+homologyDehnTwist :: Num a => Homology' a -> Homology' a -> Homology' a
 homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
@@ -481,11 +466,8 @@ lefschetzFibration paths order n = concat $ replicate n (lefschetzFibration path
 rotateMonodromy :: HomologyPath -> Int -> HomologyPath
 rotateMonodromy h1 n = take (length h1) (drop n (cycle h1))
 
-homologyToList :: Homology -> [Rational]
+homologyToList :: Real a => Homology' a -> [Rational]
 homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
-
-rationalHomologyToList :: RationalHomology -> [Rational]
-rationalHomologyToList h1 = ((aLoopR h1) ++ (bLoopR h1))
 
 homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
@@ -508,7 +490,7 @@ generateRelationBasis gamma e = map (toIntegerHomology . go) (delete e (generate
   where
     norm = homologyDotProduct gamma e
     go :: Homology -> RationalHomology
-    go hom = rationalHomologySubtract (rationalize hom) (rationalHomologyMultiply (rationalize e) ((toRational (homologyDotProduct gamma hom)) / (toRational norm)))
+    go hom = homologySubtract (rationalize hom) (homologyMultiply (rationalize e) ((toRational (homologyDotProduct gamma hom)) / (toRational norm)))
 
 generateRelation :: HomologyPath -> Homology -> Homology
 generateRelation phi l = homologySubtract l (homologyDehnTwistSequence phi l)
