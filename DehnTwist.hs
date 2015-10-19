@@ -338,13 +338,7 @@ printHomology h1 = go h1 [aLoop h1, bLoop h1]
     go h1 (x:xs) = traceShow x (go h1 xs)
 
 testZeroHomology :: Homology -> Bool
-testZeroHomology h1 = go (aLoop h1) (bLoop h1)
-  where
-    go :: [Integer] -> [Integer] -> Bool
-    go [] [] = True
-    go (x:xs) (y:ys)
-      | ((x == 0) && (y == 0)) = go xs ys
-      | otherwise = False
+testZeroHomology h1 = all (==0) (aLoop h1) && all (==0) (bLoop h1)
 
 printAllTests :: [(Integer, Integer)]
 printAllTests = (zip [-8, -4, -12, -18, -24, -48, -42] (map (toInteger . calculateSignature) [testGenusOne, matsumoto, matsumotoA, matsumotoB, matsumotoC, fullerA, fullerB]))
