@@ -134,6 +134,8 @@ generateAllHomologyPairs g = go (generateAllHomologies g) []
     go :: HomologyPath ->  [HomologyPath] -> [HomologyPath]
     go [] acc = acc
     go (x:y:rest) acc = go rest (acc ++ [[x, y]])
+    -- Ben: Is this actually correct? It looks odd. Perhaps you should recurse
+    -- with (y:rest)?
 
 generateRemainingBasis :: Homology -> [HomologyPath]
 generateRemainingBasis h1A = go [[h1A, (fromJust (homologyComplement h1A))]] (generateAllHomologyPairs g)
