@@ -91,7 +91,8 @@ homologyDivide :: Integral a => Homology' a -> a -> Homology' a
 homologyDivide h1 r = mapHom (`div` r) h1
 
 homologyDehnTwist :: Num a => Homology' a -> Homology' a -> Homology' a
-homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
+homologyDehnTwist twist path =
+  path `homologyAdd` (twist `homologyMultiply` homologyDotProduct twist path)
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
 homologyDehnTwistSequence [] h1 = h1
