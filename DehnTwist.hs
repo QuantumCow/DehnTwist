@@ -53,11 +53,8 @@ toIntegerHomology rh = mapHom (floor . ((toRational mult) *)) rh
 rationalHomologyLCM :: RationalHomology -> Integer
 rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoop rh) ++ (bLoop rh)))
 
-nonZero :: [Integer] -> [Integer]
-nonZero = filter (/= 0)
-
 homologyLCM :: Homology -> Integer
-homologyLCM h1 = foldl lcm 1 (nonZero ((aLoop h1) ++ (bLoop h1)))
+homologyLCM h1 = foldl lcm 1 (filter (/= 0) (aLoop h1 ++ bLoop h1))
 
 homologyPrint :: Homology -> String
 homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
