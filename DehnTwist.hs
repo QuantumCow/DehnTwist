@@ -75,17 +75,23 @@ homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
     go 0 acc = acc + ((aLoop h1)!!0)*((bLoop h2)!!0) - ((aLoop h2)!!0)*((bLoop h1)!!0)
     go n acc = go (n - 1) (acc + ((aLoop h1)!!n)*((bLoop h2)!!n) - ((aLoop h2)!!n)*((bLoop h1)!!n))
 
+zipHom :: (a -> b -> c) -> Homology' a -> Homology' b -> Homology' c
+zipHom f (Homology a1 b1) (Homology a2 b2) = Homology (zipWith f a1 a2) (zipWith f b1 b2)
+
+mapHom :: (a -> b) -> Homology' a -> Homology' b
+mapHom f (Homology a b) = Homology (map f a) (map f b)
+
 homologyAdd :: Num a => Homology' a -> Homology' a -> Homology' a
-homologyAdd h1 h2 = Homology (zipWith (+) (aLoop h1) (aLoop h2)) (zipWith (+) (bLoop h1) (bLoop h2))
+homologyAdd = zipHom (+)
 
 homologySubtract :: Num a => Homology' a -> Homology' a -> Homology' a
-homologySubtract h1 h2 = Homology (zipWith (-) (aLoop h1) (aLoop h2)) (zipWith (-) (bLoop h1) (bLoop h2))
+homologySubtract = zipHom (-)
 
 homologyMultiply :: Num a => Homology' a -> a -> Homology' a
-homologyMultiply h1 r = Homology (map (* r) (aLoop h1)) (map (* r) (bLoop h1))
+homologyMultiply h1 r = mapHom (* r) h1
 
 homologyDivide :: Integral a => Homology' a -> a -> Homology' a
-homologyDivide h1 r = Homology (map (`div` r) (aLoop h1)) (map (`div` r) (bLoop h1))
+homologyDivide h1 r = mapHom (`div` r) h1
 
 homologyDehnTwist :: Num a => Homology' a -> Homology' a -> Homology' a
 homologyDehnTwist twist path = (homologyAdd path (homologyMultiply twist (homologyDotProduct twist path)))
