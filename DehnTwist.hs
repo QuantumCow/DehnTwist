@@ -105,7 +105,7 @@ homologySingle (Through homIndex) genus
    = Homology (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
 
 homologyNegate :: Homology -> Homology
-homologyNegate h1 = Homology (map (0 -) (aLoop h1)) (map (0 -) (bLoop h1))
+homologyNegate = mapHom negate
 
 euc :: (Integral a) => a -> a -> (a, a)
 euc a b = case b of
