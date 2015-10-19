@@ -54,8 +54,7 @@ rationalHomologyLCM :: RationalHomology -> Integer
 rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
 
 nonZero :: [Integer] -> [Integer]
-nonZero [] = []
-nonZero (x:xs) = if (x == 0) then (nonZero xs) else [x] ++ (nonZero xs)
+nonZero = filter (/= 0)
 
 homologyLCM :: Homology -> Integer
 homologyLCM h1 = foldl lcm 1 (nonZero ((aLoop h1) ++ (bLoop h1)))
