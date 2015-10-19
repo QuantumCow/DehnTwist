@@ -164,17 +164,12 @@ subtractOutAcc h1 [h1A, h1B] = homologyAdd (homologySubtract h1 (homologyMultipl
 -- | This will return a homology b such that a . b = 1
 homologyComplement :: Homology -> Maybe Homology
 homologyComplement h1
-    | not (unit == Nothing)
-      = Just (unitHomologyComplement (fromJust unit) g)
-    | not ((mGen == Nothing) || (nGen == Nothing))
-      = Just (primeHomologyComplement h1 (fromJust mGen) (fromJust nGen))
+    | Just unit <- findUnit h1
+      = Just (unitHomologyComplement unit (genus h1))
+    | Just mGen <- findNonZero h1, Just nGen <- findRelPrime h1 mGen
+      = Just (primeHomologyComplement h1 mGen nGen)
     | otherwise
       = Nothing
-    where
-      g = genus h1
-      unit = findUnit h1
-      mGen = findNonZero h1
-      nGen = findRelPrime h1 (fromJust mGen)
 
 -- | This will return a homology represented by two generators
 doubleHomology :: Int -> Integer -> Generator -> Integer -> Generator -> Homology
