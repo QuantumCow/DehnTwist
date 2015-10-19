@@ -40,11 +40,10 @@ genus :: Homology' a -> Int
 genus h1 = length (aLoop h1)
 
 rationalize :: Homology -> RationalHomology
-rationalize h = Homology (map toRational (aLoop h)) (map toRational (bLoop h))
-
+rationalize = mapHom toRational
 
 toIntegerHomology :: RationalHomology -> Homology
-toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoop rh)) (map (floor . ((toRational mult) *)) (bLoop rh))
+toIntegerHomology rh = mapHom (floor . ((toRational mult) *)) rh
     where
       mult = rationalHomologyLCM rh
 
