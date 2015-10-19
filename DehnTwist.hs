@@ -138,22 +138,22 @@ generateAllHomologyPairs g = go (generateAllHomologies g) []
 generateRemainingBasis :: Homology -> [HomologyPath]
 generateRemainingBasis h1A = go [[h1A, (fromJust (homologyComplement h1A))]] (generateAllHomologyPairs g)
   where
-    g = (genus h1A)
+    g = genus h1A
     go :: [HomologyPath] -> [HomologyPath] -> [HomologyPath]
     go hAcc [] = hAcc
     go hAcc (x:rest)
-      | (length hAcc) == g
+      | length hAcc == g
         = hAcc
       | otherwise
-        = if (nextPair == []) then (go hAcc rest) else (go (hAcc ++ [nextPair]) rest)
+        = if nextPair == [] then go hAcc rest else go (hAcc ++ [nextPair]) rest
             where
-               nextPair = (nextBasisPair x hAcc)
+               nextPair = nextBasisPair x hAcc
 
 nextBasisPair :: HomologyPath -> [HomologyPath] -> HomologyPath
 nextBasisPair [h1A, h1B] hAcc = go h1A h1B hAcc
   where
     go :: Homology -> Homology -> [HomologyPath] -> HomologyPath
-    go h2A h2B [] = if (not ((testZeroHomology h2A) || (testZeroHomology h2B))) then [h2A, h2B] else []
+    go h2A h2B [] = if not ((testZeroHomology h2A) || (testZeroHomology h2B)) then [h2A, h2B] else []
     go h2A h2B (x:xs) = go (homologySCC (subtractOutAcc h2A x)) (homologySCC (subtractOutAcc h2B x)) xs
 
 subtractOutAcc :: Homology -> HomologyPath -> Homology
