@@ -121,12 +121,12 @@ euc a b = case b of
 -- the original homology will be some multiple of this
 homologySCC :: Homology -> Homology
 homologySCC h1
-    | (testZeroHomology h1) = h1
-    | otherwise             = homologyDivide h1 (tr (homologyLCM (tr h1)))
+    | testZeroHomology h1 = h1
+    | otherwise           = homologyDivide h1 (tr (homologyLCM (tr h1)))
 
 -- | This will return true if the homology represents a simple closed curve
 isSCC :: Homology -> Bool
-isSCC h1 = ((homologyLCM h1) == 1)
+isSCC h1 = homologyLCM h1 == 1
 
 generateAllHomologyPairs :: Int -> [HomologyPath]
 generateAllHomologyPairs g = go (generateAllHomologies g) []
