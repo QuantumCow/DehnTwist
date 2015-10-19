@@ -606,13 +606,10 @@ intersection gen = go (Path [])
     go accum (Path [])              = []
 
 genusNRelators :: Int -> Path
-genusNRelators n = go n 0
+genusNRelators n = foldMap go [0..n-1]
   where
-    go :: Int -> Int -> Path
-    go n b | (n == b) =
-      Path []
-    go n b =
-      Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
+    go :: Int -> Path
+    go b = Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)])
 
 isEquivalent :: Path -> Path -> Int -> Bool
 isEquivalent p1 p2 genus = isIdentity (p1 <> (invert p2)) genus
