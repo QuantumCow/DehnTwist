@@ -229,35 +229,14 @@ unitHomologyComplement (Neg (Through x)) g = homologySingle (Around x) g
 
 findNonZero :: Homology -> Maybe Generator
 findNonZero h1
-    | not (firstA == Nothing)
-       = Just (Around (fromJust firstA))
-    | not (firstB == Nothing)
-       = Just (Through (fromJust firstB))
-    | otherwise
-       = Nothing
-    where
-      isNotZero :: Integer -> Bool
-      isNotZero n = (not (0 == n))
-      firstA = (findIndex (isNotZero) (aLoop h1))
-      firstB = (findIndex (isNotZero) (bLoop h1))
+    = (Around <$> findIndex (/= 0) (aLoop h1)) <|> (Through <$> findIndex (/= 0) (bLoop h1))
 
 findUnit :: Homology -> Maybe (Signed Generator)
 findUnit h1
-    | not (firstAOne == Nothing)
-      = Just (Pos (Around (fromJust firstAOne)))
-    | not (firstANegOne == Nothing)
-      = Just (Neg (Around (fromJust firstANegOne)))
-    | not (firstBOne == Nothing)
-      = Just (Pos (Through (fromJust firstBOne)))
-    | not (firstBNegOne == Nothing)
-      = Just (Neg (Through (fromJust firstBNegOne)))
-    | otherwise
-      = Nothing
-    where
-      firstAOne = (elemIndex 1 (aLoop h1))
-      firstANegOne = (elemIndex (-1) (aLoop h1))
-      firstBOne = (elemIndex 1 (bLoop h1))
-      firstBNegOne = (elemIndex (-1) (bLoop h1))
+    =     (Pos . Around  <$> elemIndex 1    (aLoop h1))
+      <|> (Neg . Around  <$> elemIndex (-1) (aLoop h1))
+      <|> (Pos . Through <$> elemIndex 1    (bLoop h1))
+      <|> (Neg . Through <$> elemIndex (-1) (bLoop h1))
 
 findRelPrime :: Homology -> Generator -> Maybe Generator
 findRelPrime h1 g1
