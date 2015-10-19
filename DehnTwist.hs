@@ -242,7 +242,7 @@ findRelPrime :: Homology -> Generator -> Maybe Generator
 findRelPrime h1 g1
     = (Around <$> findIndex isRelPrime (aLoop h1)) <|> (Through <$> findIndex isRelPrime (bLoop h1))
     where
-      m = if (isAround g1) then (aLoop h1)!!(stripGenerator g1) else (bLoop h1)!!(stripGenerator g1)
+      m = getHomology h1 g1
       isRelPrime :: Integer -> Bool
       isRelPrime n = 1 == gcd m n
 
