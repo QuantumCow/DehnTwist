@@ -244,18 +244,18 @@ findRelPrime h1 g1
     where
       m = if (isAround g1) then (aLoop h1)!!(stripGenerator g1) else (bLoop h1)!!(stripGenerator g1)
       isRelPrime :: Integer -> Bool
-      isRelPrime n = (1 == (gcd m n))
+      isRelPrime n = 1 == gcd m n
 
 findNonZeroIntersection :: Homology -> Maybe Homology
 findNonZeroIntersection h1 = go 0
   where
     go :: Int -> Maybe Homology
     go count
-      | (count == (genus h1))
+      | count == genus h1
         = Nothing
-      | (not ((homologyDotProduct (homologySingle (Around count) (genus h1)) h1) == 0))
+      | (homologyDotProduct (homologySingle (Around count) (genus h1)) h1) /= 0
         = Just (homologySingle (Around count) (genus h1))
-      | (not ((homologyDotProduct (homologySingle (Through count) (genus h1)) h1) == 0))
+      | (homologyDotProduct (homologySingle (Through count) (genus h1)) h1) /= 0
         = Just (homologySingle (Through count) (genus h1))
       | otherwise
         = go (count + 1)
