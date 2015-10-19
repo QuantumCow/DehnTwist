@@ -32,7 +32,7 @@ data Homology = Homology { aLoop :: [Integer]
 
 genus :: Homology -> Int
 genus h1 = length(aLoop h1)
-                         
+
 type HomologyPath = [Homology]
 
 data RationalHomology = RationalHomology { aLoopR :: [Rational]
@@ -43,13 +43,13 @@ type RationalHomologyPath = [RationalHomology]
 
 rationalize :: Homology -> RationalHomology
 rationalize h = RationalHomology (map toRational (aLoop h)) (map toRational (bLoop h))
- 
-                                      
+
+
 toIntegerHomology :: RationalHomology -> Homology
 toIntegerHomology rh = Homology (map (floor . ((toRational mult) *)) (aLoopR rh)) (map (floor . ((toRational mult) *)) (bLoopR rh))
     where
       mult = rationalHomologyLCM rh
-                                         
+
 rationalHomologyLCM :: RationalHomology -> Integer
 rationalHomologyLCM rh = foldl lcm 1 (map denominator ((aLoopR rh) ++ (bLoopR rh)))
 
@@ -59,7 +59,7 @@ nonZero (x:xs) = if (x == 0) then (nonZero xs) else [x] ++ (nonZero xs)
 
 homologyLCM :: Homology -> Integer
 homologyLCM h1 = foldl lcm 1 (nonZero ((aLoop h1) ++ (bLoop h1)))
-                                         
+
 homologyPrint :: Homology -> String
 homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
   where
@@ -72,8 +72,8 @@ homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
 homologyPathPrint :: HomologyPath -> String
 homologyPathPrint [] = ""
 homologyPathPrint (x:xs) = ", " ++ (homologyPrint x) ++ (homologyPathPrint xs)
-                              
-                              
+
+
 homologyDotProduct :: Homology -> Homology -> Integer
 homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
   where
@@ -113,9 +113,9 @@ homologyDehnTwistSequence [] h1 = h1
 homologyDehnTwistSequence (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
 
 homologySingle :: Generator -> Int -> Homology
-homologySingle (Around homIndex) genus 
+homologySingle (Around homIndex) genus
    = Homology ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
-homologySingle (Through homIndex) genus 
+homologySingle (Through homIndex) genus
    = Homology (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
 
 homologyNegate :: Homology -> Homology
@@ -130,9 +130,9 @@ euc a b = case b of
         d = a `mod` b
 
 -- | This will return a homology which is a simple closed curve
--- the original homology will be some multiple of this 
+-- the original homology will be some multiple of this
 homologySCC :: Homology -> Homology
-homologySCC h1 
+homologySCC h1
     | (testZeroHomology h1) = h1
     | otherwise             = homologyDivide h1 (tr (homologyLCM (tr h1)))
 
@@ -145,8 +145,8 @@ generateAllHomologyPairs g = go (generateAllHomologies g) []
   where
     go :: HomologyPath ->  [HomologyPath] -> [HomologyPath]
     go [] acc = acc
-    go (x:y:rest) acc = go rest (acc ++ [[x, y]])    
-    
+    go (x:y:rest) acc = go rest (acc ++ [[x, y]])
+
 generateRemainingBasis :: Homology -> [HomologyPath]
 generateRemainingBasis h1A = go [[h1A, (fromJust (homologyComplement h1A))]] (generateAllHomologyPairs g)
   where
@@ -158,7 +158,7 @@ generateRemainingBasis h1A = go [[h1A, (fromJust (homologyComplement h1A))]] (ge
         = hAcc
       | otherwise
         = if (nextPair == []) then (go hAcc rest) else (go (hAcc ++ [nextPair]) rest)
-            where 
+            where
                nextPair = (nextBasisPair x hAcc)
 
 nextBasisPair :: HomologyPath -> [HomologyPath] -> HomologyPath
@@ -197,26 +197,26 @@ doubleHomology g a (Around x) b (Around y)
    | otherwise
    = Homology ((replicate y 0) ++ [b] ++ (replicate (x - y - 1) 0) ++ [a] ++ (replicate (g - x - 1) 0))
               (replicate g 0)
-doubleHomology g a (Around x) b (Through y) 
+doubleHomology g a (Around x) b (Through y)
    = Homology ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
               ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
-doubleHomology g a (Through x) b (Through y) 
+doubleHomology g a (Through x) b (Through y)
     | x < y
    = Homology (replicate g 0)
               ((replicate x 0) ++ [a] ++ (replicate (y - x - 1) 0) ++ [b] ++ (replicate (g - y - 1) 0))
    | otherwise
    = Homology (replicate g 0)
               ((replicate y 0) ++ [b] ++ (replicate (x - y - 1) 0) ++ [a] ++ (replicate (g - x - 1) 0))
-doubleHomology g a (Through x) b (Around y) 
+doubleHomology g a (Through x) b (Around y)
    = Homology ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
               ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
-     
+
 getHomology :: Homology -> Generator -> Integer
 getHomology h1 (Around g1) = (aLoop h1)!!g1
 getHomology h1 (Through g1) = (bLoop h1)!!g1
 
 primeHomologyComplement :: Homology -> Generator -> Generator -> Homology
-primeHomologyComplement h1 (Around g1) (Around g2) 
+primeHomologyComplement h1 (Around g1) (Around g2)
       = doubleHomology g a (Through g1) b (Through g2)
       where
         (a, b) = (euc ((aLoop h1)!!g1) ((aLoop h1)!!g2))
@@ -236,16 +236,16 @@ primeHomologyComplement h1 (Through g1) (Around g2)
       where
         (a, b) = (euc ((bLoop h1)!!g1) ((aLoop h1)!!g2))
         g = genus h1
-    
-      
+
+
 unitHomologyComplement :: Signed Generator -> Int -> Homology
 unitHomologyComplement (Pos (Around x)) g = homologySingle (Through x) g
 unitHomologyComplement (Pos (Through x)) g = homologyNegate (homologySingle (Around x) g)
 unitHomologyComplement (Neg (Around x)) g = homologyNegate (homologySingle (Through x) g)
 unitHomologyComplement (Neg (Through x)) g = homologySingle (Around x) g
 
-findNonZero :: Homology -> Maybe Generator 
-findNonZero h1 
+findNonZero :: Homology -> Maybe Generator
+findNonZero h1
     | not (firstA == Nothing)
        = Just (Around (fromJust firstA))
     | not (firstB == Nothing)
@@ -277,7 +277,7 @@ findUnit h1
       firstBNegOne = (elemIndex (-1) (bLoop h1))
 
 findRelPrime :: Homology -> Generator -> Maybe Generator
-findRelPrime h1 g1 
+findRelPrime h1 g1
     | not (firstAPrime == Nothing)
       = Just (Around (fromJust firstAPrime))
     | not (firstBPrime == Nothing)
@@ -290,30 +290,30 @@ findRelPrime h1 g1
       isRelPrime n = (1 == (gcd m n))
       firstAPrime = (findIndex (isRelPrime) (aLoop h1))
       firstBPrime = (findIndex (isRelPrime) (bLoop h1))
-      
+
 findNonZeroIntersection :: Homology -> Maybe Homology
 findNonZeroIntersection h1 = go 0
   where
     go :: Int -> Maybe Homology
     go count
-      | (count == (genus h1)) 
+      | (count == (genus h1))
         = Nothing
       | (not ((homologyDotProduct (homologySingle (Around count) (genus h1)) h1) == 0))
         = Just (homologySingle (Around count) (genus h1))
       | (not ((homologyDotProduct (homologySingle (Through count) (genus h1)) h1) == 0))
         = Just (homologySingle (Through count) (genus h1))
-      | otherwise 
+      | otherwise
         = go (count + 1)
 
 showMatrix :: [[Rational]] -> [[Rational]]
 showMatrix [] = []
 showMatrix (x:xs) = traceShow (map numerator x) ([x]++(showMatrix xs))
-        
+
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
   where rows = length m
         cols = length $ head m
- 
+
         f m _    []              = m
         f m lead (r : rs)
             | indices == Nothing = m
@@ -323,10 +323,10 @@ rref m = f m 0 [0 .. rows - 1]
                 l = [(col, row) |
                     col <- [lead .. cols - 1],
                     row <- [r .. rows - 1]]
- 
+
                 Just (lead', i) = indices
                 newRow = map (/ m !! i !! lead') $ m !! i
- 
+
                 m' = zipWith g [0..] $
                     replace r newRow $
                     replace i (m !! r) m
@@ -334,7 +334,7 @@ rref m = f m 0 [0 .. rows - 1]
                     | n == r    = row
                     | otherwise = zipWith h newRow row
                   where h = subtract . (* row !! lead')
- 
+
 replace :: Int -> a -> [a] -> [a]
 {- Replaces the element at the given index. -}
 replace n e l = a ++ e : b
@@ -342,14 +342,14 @@ replace n e l = a ++ e : b
 
 runTest :: Int
 runTest = calculateSignature testGenusOne
-  
+
 printHomology :: Homology -> Homology
 printHomology h1 = go h1 [aLoop h1, bLoop h1]
   where
     go :: Homology -> [[Integer]] -> Homology
     go h1 [] = h1
     go h1 (x:xs) = traceShow x (go h1 xs)
-  
+
 testZeroHomology :: Homology -> Bool
 testZeroHomology h1 = go (aLoop h1) (bLoop h1)
   where
@@ -361,9 +361,9 @@ testZeroHomology h1 = go (aLoop h1) (bLoop h1)
 
 printAllTests :: [(Integer, Integer)]
 printAllTests = (zip [-8, -4, -12, -18, -24, -48, -42] (map (toInteger . calculateSignature) [testGenusOne, matsumoto, matsumotoA, matsumotoB, matsumotoC, fullerA, fullerB]))
-      
+
 runAllTests :: String
-runAllTests 
+runAllTests
   | ((calculateSignature testGenusOne) /= -8) = "Genus One Failed"
   | ((calculateSignature matsumoto) /= -4) = "matsumoto Failed"
   | ((calculateSignature matsumotoA) /= -12) = "matsumotoA Failed"
@@ -372,7 +372,7 @@ runAllTests
   | ((calculateSignature fullerA) /= -48) = "fullerA Failed"
   | ((calculateSignature fullerB) /= -42) = "fullerB Failed"
 
-  
+
 testGenusOne :: HomologyPath
 testGenusOne = lefschetzFibration [(homologySingle (Around 0) 1), (homologySingle (Through 0) 1)] [0, 1] 6
 
@@ -384,7 +384,7 @@ matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
     go 1 = [Homology [0, 0] [0, 0]] ++ go 2
     go 2 = [Homology [0, 0] [-1, -1]] ++ go 3
     go 3 = [Homology [1, 1] [-1, -1]]
-    
+
 matsumotoPath :: Int -> Int -> Homology
 matsumotoPath index genus
     | (band == 0) = Homology (replicate genus 1) (replicate genus 0)
@@ -401,16 +401,16 @@ matsumotoPath index genus
     | (index < maxIndex) = Homology
             ((replicate (hole - 1) 0) ++ (replicate (genus - (2*(hole - 1))) 1) ++ (replicate (hole - 1) 0))
             ((replicate (band - 1) 0) ++ [-1] ++ (replicate (genus - (2*band)) 0) ++ [-1] ++ (replicate (band -1) 0))
-    where 
+    where
       hole = (div index 2) + 1
       band = (div (index + 1) 2)
       c = genus + 1
       a = genus + 1
       b = genus + 2
       maxIndex = if (even genus) then c else b
-     
+
 genusNMatsumoto :: Int -> HomologyPath
-genusNMatsumoto genus 
+genusNMatsumoto genus
     | (even genus) = lefschetzFibration paths [0 .. c] 2
     | (odd genus) = lefschetzFibration paths ([0 .. a] ++ [a, b, b]) 2
     where
@@ -425,7 +425,7 @@ testNotGenusOne = lefschetzFibration [(homologySingle (Around 0) 1), (homologySi
 
 matsumotoA :: HomologyPath
 matsumotoA = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
-    
+
 matsumotoB :: HomologyPath
 matsumotoB = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4] 6
 
@@ -438,7 +438,7 @@ genusTwoGenerators = [(Homology [0, 0] [-1, 0]),
                       (Homology [0, 0] [1, -1]),
                       (Homology [0, 1] [0, 0]),
                       (Homology [0, 0] [0, 1])]
-    
+
 fullerA :: HomologyPath
 fullerA = lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 14
 
@@ -462,23 +462,23 @@ generateAllHomologies :: Int -> HomologyPath
 generateAllHomologies genus = go genus 0
   where
     go :: Int -> Int -> HomologyPath
-    go genus index  
+    go genus index
       | (index == genus) = []
       | otherwise = [(homologySingle (Around index) genus), (homologySingle (Through index) genus)] ++ (go genus (index + 1))
 
 isIdentityOn :: HomologyPath -> Homology -> Bool
-isIdentityOn path h1 = (h1 == (homologyDehnTwistSequence path h1))      
-      
+isIdentityOn path h1 = (h1 == (homologyDehnTwistSequence path h1))
+
 checkLefschetzFibration :: HomologyPath -> Bool
 checkLefschetzFibration [] = True
 checkLefschetzFibration paths = foldr (&&) True (map (isIdentityOn paths) (generateAllHomologies (length (aLoop (paths!!0)))))
-    
+
 lefschetzFibration :: HomologyPath -> [Int] -> Int -> HomologyPath
 lefschetzFibration paths order 0 = go paths order
   where
     go :: HomologyPath -> [Int] -> HomologyPath
     go paths [] = []
-    go paths (x:xs) = [(paths!!x)] ++ (go paths xs)   
+    go paths (x:xs) = [(paths!!x)] ++ (go paths xs)
 lefschetzFibration paths order n = concat $ replicate n (lefschetzFibration paths order 0)
 
 rotateMonodromy :: HomologyPath -> Int -> HomologyPath
@@ -499,12 +499,12 @@ calculateABC l m mod = [(last (out!!0))] ++ [(last (out!!1))]
     out = showMatrix (rref (showMatrix (homologyToMatrices l m mod)))
 
 calculateDelta :: [Rational] -> Int
-calculateDelta abc 
+calculateDelta abc
   | (result < 0) = 1
   | (result == 0) = 0
   | (result > 0) = -1
   where
-    result = (abc!!0 + abc!!1)*(abc!!0)  
+    result = (abc!!0 + abc!!1)*(abc!!0)
 
 generateRelationBasis :: Homology -> Homology -> HomologyPath
 generateRelationBasis gamma e = map (toIntegerHomology . go) (delete e (generateAllHomologies (genus e)))
@@ -527,7 +527,7 @@ calculateSignatureStep phi attachingCircle
       e = (basis!!0)!!1
       m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct l e)
       mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
-    
+
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0
   where
@@ -627,12 +627,12 @@ genusNRelators n = go n 0
     go :: Int -> Int -> Path
     go n b | (n == b) =
       Path []
-    go n b = 
+    go n b =
       Path ([Pos (Around b), Pos (Through b), Neg (Around b), Neg (Through b)]) <> go n (b+1)
 
 isEquivalent :: Path -> Path -> Int -> Bool
 isEquivalent p1 p2 genus = isIdentity (p1 <> (invert p2)) genus
-      
+
 isIdentity :: Path -> Int -> Bool
 isIdentity (Path p) genus = go p 0
   where
@@ -657,7 +657,7 @@ simplify p genus index =
     go (-1) length replacement = p
     go index length replacement = (take index p) ++ replacement ++ (drop (index + length) p)
 
--- | 
+-- |
 cancelInverses :: RawPath -> RawPath
 cancelInverses (Pos g0 : Neg g1 : rest)
   | g0 == g1      = cancelInverses rest
@@ -665,10 +665,10 @@ cancelInverses (Neg g0 : Pos g1 : rest)
   | g0 == g1      = cancelInverses rest
 cancelInverses (p : rest) = (p : cancelInverses rest)
 cancelInverses [] = []
-                  
+
 simplifiable :: RawPath -> Int -> Int -> Bool
 simplifiable p genus index = isInfixOf (matchCycleByGenus genus index) p
-                  
+
 matchCycleByGenus :: Int -> Int -> RawPath
 matchCycleByGenus genus index = matchCycle (genusNRelators genus) index
 
@@ -688,4 +688,4 @@ invert (Path raw) = (Path (go raw))
     go :: RawPath -> RawPath
     go [] = []
     go (Pos x : rest) = (go rest) ++ [Neg x]
-    go (Neg x : rest) = (go rest) ++ [Pos x]     
+    go (Neg x : rest) = (go rest) ++ [Pos x]
