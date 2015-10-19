@@ -70,10 +70,8 @@ homologyPathPrint :: HomologyPath -> String
 homologyPathPrint = intercalate ", " . map homologyPrint
 
 homologyDotProduct :: Num a => Homology' a -> Homology' a -> a
-homologyDotProduct h1 h2 = go ((genus h1) - 1) 0
-  where
-    go 0 acc = acc + ((aLoop h1)!!0)*((bLoop h2)!!0) - ((aLoop h2)!!0)*((bLoop h1)!!0)
-    go n acc = go (n - 1) (acc + ((aLoop h1)!!n)*((bLoop h2)!!n) - ((aLoop h2)!!n)*((bLoop h1)!!n))
+homologyDotProduct h1 h2 =
+  sum (zipWith (*) (aLoop h1) (bLoop h2)) - sum (zipWith (*) (aLoop h2) (bLoop h1))
 
 zipHom :: (a -> b -> c) -> Homology' a -> Homology' b -> Homology' c
 zipHom f (Homology a1 b1) (Homology a2 b2) = Homology (zipWith f a1 a2) (zipWith f b1 b2)
