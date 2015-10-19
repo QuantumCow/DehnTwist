@@ -98,8 +98,7 @@ homologyDehnTwist twist path =
   path `homologyAdd` (twist `homologyMultiply` homologyDotProduct twist path)
 
 homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
-homologyDehnTwistSequence [] h1 = h1
-homologyDehnTwistSequence (x:xs) h1 = homologyDehnTwistSequence xs (homologyDehnTwist x h1)
+homologyDehnTwistSequence xs h1 = foldr homologyDehnTwist h1 xs
 
 homologySingle :: Generator -> Int -> Homology
 homologySingle (Around homIndex) genus
