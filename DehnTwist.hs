@@ -30,6 +30,9 @@ data Homology' a = Homology { aLoop :: [a]
                             , bLoop :: [a]
                             } deriving (Eq, Show)
 
+instance Functor Homology' where
+  fmap f (Homology a b) = Homology (map f a) (map f b)
+
 type Homology = Homology' Integer
 type RationalHomology = Homology' Rational
 type HomologyPath' a = [Homology' a]
