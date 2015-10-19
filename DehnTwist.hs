@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 
+import Control.Applicative
 import Data.Foldable
 import Data.Monoid
 import Data.List
@@ -265,12 +266,7 @@ findUnit h1
 
 findRelPrime :: Homology -> Generator -> Maybe Generator
 findRelPrime h1 g1
-    | Just firstAPrime <- findIndex isRelPrime (aLoop h1)
-      = Just (Around firstAPrime)
-    | Just firstBPrime <- findIndex isRelPrime (bLoop h1)
-      = Just (Through firstBPrime)
-    | otherwise
-      = Nothing
+    = (Around <$> findIndex isRelPrime (aLoop h1)) <|> (Through <$> findIndex isRelPrime (bLoop h1))
     where
       m = if (isAround g1) then (aLoop h1)!!(stripGenerator g1) else (bLoop h1)!!(stripGenerator g1)
       isRelPrime :: Integer -> Bool
