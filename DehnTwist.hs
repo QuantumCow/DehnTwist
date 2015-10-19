@@ -198,7 +198,7 @@ doubleHomology g a (Through x) b (Around y)
    = Homology ((replicate y 0) ++ [b] ++ (replicate (g - y - 1) 0))
               ((replicate x 0) ++ [a] ++ (replicate (g - x - 1) 0))
 
-getHomology :: Homology -> Generator -> Integer
+getHomology :: Homology' a -> Generator -> a
 getHomology h1 (Around g1) = (aLoop h1)!!g1
 getHomology h1 (Through g1) = (bLoop h1)!!g1
 
