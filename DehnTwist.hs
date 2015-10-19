@@ -265,18 +265,16 @@ findUnit h1
 
 findRelPrime :: Homology -> Generator -> Maybe Generator
 findRelPrime h1 g1
-    | not (firstAPrime == Nothing)
-      = Just (Around (fromJust firstAPrime))
-    | not (firstBPrime == Nothing)
-      = Just (Through (fromJust firstBPrime))
+    | Just firstAPrime <- findIndex isRelPrime (aLoop h1)
+      = Just (Around firstAPrime)
+    | Just firstBPrime <- findIndex isRelPrime (bLoop h1)
+      = Just (Through firstBPrime)
     | otherwise
       = Nothing
     where
       m = if (isAround g1) then (aLoop h1)!!(stripGenerator g1) else (bLoop h1)!!(stripGenerator g1)
       isRelPrime :: Integer -> Bool
       isRelPrime n = (1 == (gcd m n))
-      firstAPrime = (findIndex (isRelPrime) (aLoop h1))
-      firstBPrime = (findIndex (isRelPrime) (bLoop h1))
 
 findNonZeroIntersection :: Homology -> Maybe Homology
 findNonZeroIntersection h1 = go 0
