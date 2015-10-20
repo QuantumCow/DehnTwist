@@ -66,11 +66,11 @@ homologyPrint h1 = go (aLoop h1) (bLoop h1) 0
                              (if y /= 0 then ((show y) ++ "b" ++ (show count) ++ "+") else "") ++
                               go xs ys (count + 1)
 
-homologyPathPrint :: HomologyPath -> String
-homologyPathPrint = intercalate ", " . map homologyPrint
+pathPrintHom :: HomologyPath -> String
+pathPrintHom = intercalate ", " . map homologyPrint
 
-homologyDotProduct :: Num a => Homology' a -> Homology' a -> a
-homologyDotProduct h1 h2 =
+dotHom :: Num a => Homology' a -> Homology' a -> a
+dotHom h1 h2 =
   sum (zipWith (*) (aLoop h1) (bLoop h2)) - sum (zipWith (*) (aLoop h2) (bLoop h1))
 
 zipHom :: (a -> b -> c) -> Homology' a -> Homology' b -> Homology' c
@@ -79,33 +79,33 @@ zipHom f (Homology a1 b1) (Homology a2 b2) = Homology (zipWith f a1 a2) (zipWith
 mapHom :: (a -> b) -> Homology' a -> Homology' b
 mapHom f (Homology a b) = Homology (map f a) (map f b)
 
-homologyAdd :: Num a => Homology' a -> Homology' a -> Homology' a
-homologyAdd = zipHom (+)
+addHom :: Num a => Homology' a -> Homology' a -> Homology' a
+addHom = zipHom (+)
 
-homologySubtract :: Num a => Homology' a -> Homology' a -> Homology' a
-homologySubtract = zipHom (-)
+subHom :: Num a => Homology' a -> Homology' a -> Homology' a
+subHom = zipHom (-)
 
-homologyMultiply :: Num a => Homology' a -> a -> Homology' a
-homologyMultiply h1 r = mapHom (* r) h1
+mulHom :: Num a => Homology' a -> a -> Homology' a
+mulHom h1 r = mapHom (* r) h1
 
-homologyDivide :: Integral a => Homology' a -> a -> Homology' a
-homologyDivide h1 r = mapHom (`div` r) h1
+divHom :: Integral a => Homology' a -> a -> Homology' a
+divHom h1 r = mapHom (`div` r) h1
 
-homologyDehnTwist :: Num a => Homology' a -> Homology' a -> Homology' a
-homologyDehnTwist twist path =
-  path `homologyAdd` (twist `homologyMultiply` homologyDotProduct twist path)
+dehnTwistHom :: Num a => Homology' a -> Homology' a -> Homology' a
+dehnTwistHom twist path =
+  path `addHom` (twist `mulHom` dotHom twist path)
 
-homologyDehnTwistSequence :: HomologyPath -> Homology -> Homology
-homologyDehnTwistSequence xs h1 = foldr homologyDehnTwist h1 xs
+dehnTwistSeqHom :: HomologyPath -> Homology -> Homology
+dehnTwistSeqHom xs h1 = foldl (flip dehnTwistHom) h1 xs
 
-homologySingle :: Generator -> Int -> Homology
-homologySingle (Around homIndex) genus
+singleHom :: Generator -> Int -> Homology
+singleHom (Around homIndex) genus
    = Homology ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
-homologySingle (Through homIndex) genus
+singleHom (Through homIndex) genus
    = Homology (replicate genus 0) ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0))
 
-homologyNegate :: Homology -> Homology
-homologyNegate = mapHom negate
+negateHom :: Homology -> Homology
+negateHom = mapHom negate
 
 euc :: (Integral a) => a -> a -> (a, a)
 euc a b = case b of
@@ -120,7 +120,7 @@ euc a b = case b of
 homologySCC :: Homology -> Homology
 homologySCC h1
     | testZeroHomology h1 = h1
-    | otherwise           = homologyDivide h1 (tr (homologyLCM (tr h1)))
+    | otherwise           = divHom h1 (tr (homologyLCM (tr h1)))
 
 -- | This will return true if the homology represents a simple closed curve
 isSCC :: Homology -> Bool
@@ -157,8 +157,8 @@ nextBasisPair [h1A, h1B] hAcc = go h1A h1B hAcc
     go h2A h2B (x:xs) = go (homologySCC (subtractOutAcc h2A x)) (homologySCC (subtractOutAcc h2B x)) xs
 
 subtractOutAcc :: Homology -> HomologyPath -> Homology
-subtractOutAcc h1 [h1A, h1B] = homologyAdd (homologySubtract h1 (homologyMultiply h1A (homologyDotProduct h1 h1B)))
-                                           (homologyMultiply h1B (homologyDotProduct h1 h1A))
+subtractOutAcc h1 [h1A, h1B] = addHom (subHom h1 (mulHom h1A (dotHom h1 h1B)))
+                                           (mulHom h1B (dotHom h1 h1A))
 
 
 -- | This will return a homology b such that a . b = 1
@@ -222,10 +222,10 @@ primeHomologyComplement h1 (Through g1) (Around g2)
 
 
 unitHomologyComplement :: Signed Generator -> Int -> Homology
-unitHomologyComplement (Pos (Around x)) g = homologySingle (Through x) g
-unitHomologyComplement (Pos (Through x)) g = homologyNegate (homologySingle (Around x) g)
-unitHomologyComplement (Neg (Around x)) g = homologyNegate (homologySingle (Through x) g)
-unitHomologyComplement (Neg (Through x)) g = homologySingle (Around x) g
+unitHomologyComplement (Pos (Around x)) g = singleHom (Through x) g
+unitHomologyComplement (Pos (Through x)) g = negateHom (singleHom (Around x) g)
+unitHomologyComplement (Neg (Around x)) g = negateHom (singleHom (Through x) g)
+unitHomologyComplement (Neg (Through x)) g = singleHom (Around x) g
 
 findNonZero :: Homology -> Maybe Generator
 findNonZero h1
@@ -253,10 +253,10 @@ findNonZeroIntersection h1 = go 0
     go count
       | count == genus h1
         = Nothing
-      | (homologyDotProduct (homologySingle (Around count) (genus h1)) h1) /= 0
-        = Just (homologySingle (Around count) (genus h1))
-      | (homologyDotProduct (homologySingle (Through count) (genus h1)) h1) /= 0
-        = Just (homologySingle (Through count) (genus h1))
+      | (dotHom (singleHom (Around count) (genus h1)) h1) /= 0
+        = Just (singleHom (Around count) (genus h1))
+      | (dotHom (singleHom (Through count) (genus h1)) h1) /= 0
+        = Just (singleHom (Through count) (genus h1))
       | otherwise
         = go (count + 1)
 
@@ -323,7 +323,7 @@ runAllTests
 
 
 testGenusOne :: HomologyPath
-testGenusOne = lefschetzFibration [(homologySingle (Around 0) 1), (homologySingle (Through 0) 1)] [0, 1] 6
+testGenusOne = lefschetzFibration [(singleHom (Around 0) 1), (singleHom (Through 0) 1)] [0, 1] 6
 
 matsumoto :: HomologyPath
 matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
@@ -370,7 +370,7 @@ genusNMatsumoto genus
       paths = concatMap (\x -> [(matsumotoPath x genus)]) [0 .. maxIndex]
 
 testNotGenusOne :: HomologyPath
-testNotGenusOne = lefschetzFibration [(homologySingle (Around 0) 1), (homologySingle (Through 0) 1)] [0, 1] 1
+testNotGenusOne = lefschetzFibration [(singleHom (Around 0) 1), (singleHom (Through 0) 1)] [0, 1] 1
 
 matsumotoA :: HomologyPath
 matsumotoA = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4, 4, 3, 2, 1, 0] 2
@@ -413,10 +413,10 @@ generateAllHomologies genus = go genus 0
     go :: Int -> Int -> HomologyPath
     go genus index
       | (index == genus) = []
-      | otherwise = [(homologySingle (Around index) genus), (homologySingle (Through index) genus)] ++ (go genus (index + 1))
+      | otherwise = [(singleHom (Around index) genus), (singleHom (Through index) genus)] ++ (go genus (index + 1))
 
 isIdentityOn :: HomologyPath -> Homology -> Bool
-isIdentityOn path h1 = (h1 == (homologyDehnTwistSequence path h1))
+isIdentityOn path h1 = (h1 == (dehnTwistSeqHom path h1))
 
 checkLefschetzFibration :: HomologyPath -> Bool
 checkLefschetzFibration [] = True
@@ -455,12 +455,12 @@ calculateDelta abc
 generateRelationBasis :: Homology -> Homology -> HomologyPath
 generateRelationBasis gamma e = map (toIntegerHomology . go) (delete e (generateAllHomologies (genus e)))
   where
-    norm = homologyDotProduct gamma e
+    norm = dotHom gamma e
     go :: Homology -> RationalHomology
-    go hom = homologySubtract (rationalize hom) (homologyMultiply (rationalize e) ((toRational (homologyDotProduct gamma hom)) / (toRational norm)))
+    go hom = subHom (rationalize hom) (mulHom (rationalize e) ((toRational (dotHom gamma hom)) / (toRational norm)))
 
 generateRelation :: HomologyPath -> Homology -> Homology
-generateRelation phi l = homologySubtract l (homologyDehnTwistSequence phi l)
+generateRelation phi l = subHom l (dehnTwistSeqHom phi l)
 
 calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
@@ -471,7 +471,7 @@ calculateSignatureStep phi attachingCircle
       l = attachingCircle
       basis = generateRemainingBasis l
       e = (basis!!0)!!1
-      m = homologyDivide (tr (homologySubtract (tr e) (tr (homologyDehnTwistSequence phi e))))  (homologyDotProduct l e)
+      m = divHom (tr (subHom (tr e) (tr (dehnTwistSeqHom phi e))))  (dotHom l e)
       mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
 
 calculateSignature :: HomologyPath -> Int

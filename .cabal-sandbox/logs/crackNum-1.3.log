@@ -1,0 +1,14 @@
+Registering crackNum-1.3...
+rs\Rich\Documents\GitHub\DehnTwist\.cabal-sandbox\x86_64-windows-ghc-7.10.2\crackNum-1.3-1eCcDcPz7qCApKTjiqogtz
+Installing executable(s) in
+C:\Users\Rich\Documents\GitHub\DehnTwist\.cabal-sandbox\bin
+.Numbers.CrackNum.Utils ( Data\Numbers\CrackNum\Utils.hs, dist\dist-sandbox-72eae8e5\build\Data\Numbers\CrackNum\Utils.o )
+[3 of 3] Compiling Data.Numbers.CrackNum ( Data\Numbers\CrackNum.hs, dist\dist-sandbox-72eae8e5\build\Data\Numbers\CrackNum.o )
+In-place registering crackNum-1.3...
+Preprocessing executable 'crackNum' for crackNum-1.3...
+[1 of 5] Compiling Data.Numbers.CrackNum.Data ( Data\Numbers\CrackNum\Data.hs, dist\dist-sandbox-72eae8e5\build\crackNum\crackNum-tmp\Data\Numbers\CrackNum\Data.o )
+[2 of 5] Compiling Paths_crackNum   ( dist\dist-sandbox-72eae8e5\build\autogen\Paths_crackNum.hs, dist\dist-sandbox-72eae8e5\build\crackNum\crackNum-tmp\Paths_crackNum.o )
+[3 of 5] Compiling Data.Numbers.CrackNum.Utils ( Data\Numbers\CrackNum\Utils.hs, dist\dist-sandbox-72eae8e5\build\crackNum\crackNum-tmp\Data\Numbers\CrackNum\Utils.o )
+[4 of 5] Compiling Data.Numbers.CrackNum ( Data\Numbers\CrackNum.hs, dist\dist-sandbox-72eae8e5\build\crackNum\crackNum-tmp\Data\Numbers\CrackNum.o )
+[5 of 5] Compiling Main             ( Data\Numbers\CrackNum\Main.hs, dist\dist-sandbox-72eae8e5\build\crackNum\crackNum-tmp\Main.o )
+Linking dist/dist-sandbox-72eae8e5\build\crackNum\crackNum.exe ...

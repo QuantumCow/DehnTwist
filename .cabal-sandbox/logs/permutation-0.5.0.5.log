@@ -1,0 +1,29 @@
+Registering permutation-0.5.0.5...
+\Documents\GitHub\DehnTwist\.cabal-sandbox\x86_64-windows-ghc-7.10.2\permutation-0.5.0.5-DvAmylAlS2ICIvW1w2ELsF
+t-sandbox-72eae8e5\build\Data\IntArray.o )
+
+lib\Data\IntArray.hs:46:1: Warning:
+    Top-level binding with no type signature: isTrue :: Int# -> Bool
+[ 2 of 13] Compiling Data.Permute.Base ( lib\Data\Permute\Base.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute\Base.o )
+
+lib\Data\Permute\Base.hs:18:1: Warning:
+    The import of `Foreign' is redundant
+      except perhaps to import instances from `Foreign'
+    To import instances alone, use: import Foreign()
+[ 3 of 13] Compiling Data.Permute.IOBase ( lib\Data\Permute\IOBase.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute\IOBase.o )
+[ 4 of 13] Compiling Data.Permute.MPermute ( lib\Data\Permute\MPermute.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute\MPermute.o )
+[ 5 of 13] Compiling Data.Permute.ST  ( lib\Data\Permute\ST.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute\ST.o )
+[ 6 of 13] Compiling Data.Permute.IO  ( lib\Data\Permute\IO.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute\IO.o )
+[ 7 of 13] Compiling Data.Permute     ( lib\Data\Permute.hs, dist\dist-sandbox-72eae8e5\build\Data\Permute.o )
+[ 8 of 13] Compiling Data.Choose.Base ( lib\Data\Choose\Base.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose\Base.o )
+
+lib\Data\Choose\Base.hs:15:1: Warning:
+    The import of `Foreign' is redundant
+      except perhaps to import instances from `Foreign'
+    To import instances alone, use: import Foreign()
+[ 9 of 13] Compiling Data.Choose.IOBase ( lib\Data\Choose\IOBase.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose\IOBase.o )
+[10 of 13] Compiling Data.Choose.MChoose ( lib\Data\Choose\MChoose.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose\MChoose.o )
+[11 of 13] Compiling Data.Choose.ST   ( lib\Data\Choose\ST.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose\ST.o )
+[12 of 13] Compiling Data.Choose.IO   ( lib\Data\Choose\IO.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose\IO.o )
+[13 of 13] Compiling Data.Choose      ( lib\Data\Choose.hs, dist\dist-sandbox-72eae8e5\build\Data\Choose.o )
+In-place registering permutation-0.5.0.5...

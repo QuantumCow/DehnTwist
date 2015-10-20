@@ -1,0 +1,64 @@
+
+package: crackNum-1.3
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: ieee754-0.7.6 data-binary-ieee754-0.4.4 base-4.8.1.0
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
+
+package: data-binary-ieee754-0.4.4
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: binary-0.7.5.0 base-4.8.1.0
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
+
+package: ieee754-0.7.6
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: base-4.8.1.0
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
+
+package: linearEqSolver-1.3
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: sbv-4.4 base-4.8.1.0
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
+
+package: sbv-4.4
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: syb-0.5.1 random-1.1 process-1.2.3.0 pretty-1.1.2.0
+              old-time-1.1.0.3 mtl-2.2.1 filepath-1.4.0.0 directory-1.2.2.0
+              deepseq-1.4.1.1 data-binary-ieee754-0.4.4 crackNum-1.3
+              containers-0.5.6.2 base-4.8.1.0 async-2.0.2 array-0.5.1.0
+              QuickCheck-2.8.1 HUnit-1.2.5.2
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
+
+package: permutation-0.5.0.5
+os: windows
+arch: x86_64
+compiler: ghc-7.10.2
+client: cabal-install-1.22.6.0
+dependencies: ghc-prim-0.4.0.0 base-4.8.1.0 QuickCheck-2.8.1
+install-outcome: InstallOk
+docs-outcome: NotTried
+tests-outcome: NotTried
