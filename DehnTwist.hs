@@ -8,8 +8,11 @@ import Data.Ratio
 import Data.Maybe
 import Debug.Trace
 
-tr :: Show a => a -> a
-tr x = traceShow x x
+trA :: Show a => a -> a
+trA x = traceShow x x
+
+trLabel :: Show a => String -> a -> a
+trLabel text x = traceShow (text ++ " " ++ (show x)) x
 
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
@@ -120,7 +123,7 @@ euc a b = case b of
 homologySCC :: Homology -> Homology
 homologySCC h1
     | testZeroHomology h1 = h1
-    | otherwise           = divHom h1 (tr (homologyLCM (tr h1)))
+    | otherwise           = divHom h1(homologyLCM h1)
 
 -- | This will return true if the homology represents a simple closed curve
 isSCC :: Homology -> Bool
@@ -132,6 +135,7 @@ generateAllHomologyPairs g = go (generateAllHomologies g) []
     go :: HomologyPath ->  [HomologyPath] -> [HomologyPath]
     go [] acc = acc
     go (x:y:rest) acc = go rest (acc ++ [[x, y]])
+    -- This is just pairing off the homologies.
     -- Ben: Is this actually correct? It looks odd. Perhaps you should recurse
     -- with (y:rest)?
 
@@ -264,6 +268,21 @@ showMatrix :: [[Rational]] -> [[Rational]]
 showMatrix [] = []
 showMatrix (x:xs) = traceShow (map numerator x) ([x]++(showMatrix xs))
 
+notZeroOne :: Rational -> Bool
+notZeroOne x = ((x /= 0) && (x /= 1))
+
+getOtherValue :: [Rational] -> Maybe Rational
+getOtherValue row = if ((length vals) == 1) then (Just (vals!!0)) else Nothing
+   where vals = (filter notZeroOne row)
+
+getPQ :: [[Rational]] -> Maybe Int
+getPQ m = go (getOtherValue (m!!0)) (getOtherValue (m!!1))
+  where
+    go :: Maybe Rational -> Maybe Rational -> Maybe Int
+    go Nothing q = Nothing
+    go p Nothing = Nothing
+    go p q = Just (calculateDelta [(fromJust p), (fromJust q)])
+   
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
   where rows = length m
@@ -439,10 +458,8 @@ homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
 homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
 
-calculateABC :: Homology -> Homology -> [Homology] -> [Rational]
-calculateABC l m mod = [(last (out!!0))] ++ [(last (out!!1))]
-  where
-    out = showMatrix (rref (showMatrix (homologyToMatrices l m mod)))
+calculateABC :: Homology -> Homology -> [Homology] -> Maybe Int
+calculateABC l m mod = getPQ (showMatrix (rref (showMatrix (homologyToMatrices l m mod))))
 
 calculateDelta :: [Rational] -> Int
 calculateDelta abc
@@ -464,22 +481,22 @@ generateRelation phi l = subHom l (dehnTwistSeqHom phi l)
 
 calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
-  | testZeroHomology attachingCircle = trace ("Signature Step: Null Homology, Add -1") (-1)
-  | testZeroHomology m = trace ("Signature Step: m is Null, Add 0") 0
-  | otherwise = trace ("Signature Step:") (calculateDelta (calculateABC l m mod))
+  | testZeroHomology attachingCircle = trace ("Signature Step: Attaching handle null, Add -1") (-1)
+  | testZeroHomology m = trace ("Signature Step: crossing loop e(m) is Null, Add 0") 0
+  | otherwise = trLabel ("Signature Step:") (fromJust (calculateABC l m mod))
     where
       l = attachingCircle
-      basis = generateRemainingBasis l
+      basis = trLabel "RemainingBasis" (generateRemainingBasis l)
       e = (basis!!0)!!1
-      m = divHom (tr (subHom (tr e) (tr (dehnTwistSeqHom phi e))))  (dotHom l e)
+      m = divHom (trLabel "DivOut" (subHom (trLabel "SubInA" e) (trLabel "SubInB" (dehnTwistSeqHom phi e))))  (dotHom l e)
       mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
 
 calculateSignature :: HomologyPath -> Int
-calculateSignature p1 = go [] p1 0
+calculateSignature p1 = go [] p1 0 1
   where
-    go :: HomologyPath -> HomologyPath -> Int -> Int
-    go phi [] acc = (tr acc)
-    go phi (x : xs) acc = go (phi ++ [x]) xs ((tr acc) + (calculateSignatureStep phi x))
+    go :: HomologyPath -> HomologyPath -> Int -> Int -> Int
+    go phi [] acc stepCount = (trLabel "calculateSignatureEnd" acc)
+    go phi (x : xs) acc stepCount = go (phi ++ [x]) xs ((trLabel ("calculateSignature"++(show stepCount)) acc) + (calculateSignatureStep phi x)) (stepCount + 1)
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
