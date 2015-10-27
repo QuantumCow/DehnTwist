@@ -268,20 +268,26 @@ showMatrix :: [[Rational]] -> [[Rational]]
 showMatrix [] = []
 showMatrix (x:xs) = traceShow (map numerator x) ([x]++(showMatrix xs))
 
-notZeroOne :: Rational -> Bool
-notZeroOne x = ((x /= 0) && (x /= 1))
+oneIndex :: [Rational] -> Maybe Int
+oneIndex row = elemIndex 1 row
 
-getOtherValue :: [Rational] -> Maybe Rational
-getOtherValue row = if ((length vals) == 1) then (Just (vals!!0)) else Nothing
-   where vals = (filter notZeroOne row)
+getOneCols :: [[Rational]] -> [Maybe Int]
+getOneCols m = map oneIndex m
 
-getPQ :: [[Rational]] -> Maybe Int
-getPQ m = go (getOtherValue (m!!0)) (getOtherValue (m!!1))
+findMissingOne :: [Maybe Int] -> Int
+findMissingOne ones = go ones 0
   where
-    go :: Maybe Rational -> Maybe Rational -> Maybe Int
-    go Nothing q = Nothing
-    go p Nothing = Nothing
-    go p q = Just (calculateDelta [(fromJust p), (fromJust q)])
+    go :: [Maybe Int] -> Int -> Int
+    go (x:xs) n | (x==Nothing) = n
+                | ((fromJust x)==n) = go xs (n+1)
+                | otherwise = n
+    go [] n = n
+
+getPQ :: [[Rational]] -> Int
+getPQ m | (row > 1) = calculateDelta [(m!!0)!!row, (m!!1)!!row]
+        | otherwise = 0
+  where
+    row = findMissingOne (getOneCols m) 
    
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
@@ -458,7 +464,7 @@ homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
 homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
 
-calculateABC :: Homology -> Homology -> [Homology] -> Maybe Int
+calculateABC :: Homology -> Homology -> [Homology] -> Int
 calculateABC l m mod = getPQ (showMatrix (rref (showMatrix (homologyToMatrices l m mod))))
 
 calculateDelta :: [Rational] -> Int
@@ -483,7 +489,7 @@ calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
   | testZeroHomology attachingCircle = trace ("Signature Step: Attaching handle null, Add -1") (-1)
   | testZeroHomology m = trace ("Signature Step: crossing loop e(m) is Null, Add 0") 0
-  | otherwise = trLabel ("Signature Step:") (fromJust (calculateABC l m mod))
+  | otherwise = trLabel ("Signature Step:") (calculateABC l m mod)
     where
       l = attachingCircle
       basis = trLabel "RemainingBasis" (generateRemainingBasis l)
