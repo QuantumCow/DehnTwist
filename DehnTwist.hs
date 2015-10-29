@@ -437,14 +437,14 @@ matsumotoPath index genus
     | (band == 0) = Homology (replicate genus 1) (replicate genus 0)
     | ((odd genus) && (index == a)) = Homology
             (replicate genus 0)
-            ((replicate (div genus 2) 0) ++ [1] ++ (replicate (div genus 2) 0))
+            ((replicate (div genus 2) 0) ++ [-1] ++ (replicate (div genus 2) 0))
     | ((odd genus) && (index == b)) = Homology
             (replicate genus 0)
             ((replicate (div genus 2) 0) ++ [-1] ++ (replicate (div genus 2) 0))
     | ((odd genus) && (index == genus)) = Homology
-            (replicate genus 0)
+            ((replicate (div genus 2) 0) ++ [1] ++ (replicate (div genus 2) 0))
             ((replicate (div genus 2) 0) ++ [-2] ++ (replicate (div genus 2) 0))
-    | ((even genus) && (index == c)) = Homology (replicate genus 0) (replicate genus 1)
+    | ((even genus) && (index == c)) = Homology (replicate genus 0) (replicate genus 0)
     | (index < maxIndex) = Homology
             ((replicate (hole - 1) 0) ++ (replicate (genus - (2*(hole - 1))) 1) ++ (replicate (hole - 1) 0))
             ((replicate (band - 1) 0) ++ [-1] ++ (replicate (genus - (2*band)) 0) ++ [-1] ++ (replicate (band -1) 0))
@@ -458,8 +458,8 @@ matsumotoPath index genus
 
 genusNMatsumoto :: Int -> HomologyPath
 genusNMatsumoto genus
-    | (even genus) = lefschetzFibration paths [0 .. c] 2
-    | (odd genus) = lefschetzFibration paths ([0 .. a] ++ [a, b, b]) 2
+    | (even genus) = lefschetzFibration paths (reverse [0 .. c]) 2
+    | (odd genus) = lefschetzFibration paths (reverse ([0 .. a]++[a, b, b])) 2
     where
       c = genus + 1
       a = genus + 1
@@ -467,6 +467,31 @@ genusNMatsumoto genus
       maxIndex = if (even genus) then c else b
       paths = concatMap (\x -> [(matsumotoPath x genus)]) [0 .. maxIndex]
 
+genusNChain :: Int -> HomologyPath
+genusNChain genus = lefschetzFibration paths (reverse ([0 .. (2*genus -1)])) (4*genus + 2)
+    where
+      paths = concatMap (\x -> [(genusNGenerators genus x)]) [0 .. 2*genus]
+     
+genusNInvolution :: Int -> HomologyPath
+genusNInvolution genus = lefschetzFibration paths ([0 .. 2*genus]++(reverse [0 .. 2*genus])) 2
+    where
+      paths = concatMap (\x -> [(genusNGenerators genus x)]) [0 .. 2*genus]
+      
+genusNGenerators :: Int -> Int -> Homology
+genusNGenerators genus 0 = Homology
+               (replicate genus 0)
+               ([-1]++(replicate (genus - 1) 0))
+genusNGenerators genus index | (index == 2*genus) = Homology
+               (replicate genus 0)
+               ((replicate (genus - 1) 0)++[1])
+genusNGenerators genus index 
+            | (even index) = Homology
+               (replicate genus 0)
+               ((replicate ((div index 2)-1) 0)++[1, -1]++(replicate (genus - (div index 2) - 1) 0))            
+            | (odd index) = Homology
+                ((replicate (div index 2) 0)++[1]++(replicate (genus - (div index 2) - 1) 0))
+                (replicate genus 0)
+                
 testNotGenusOne :: HomologyPath
 testNotGenusOne = lefschetzFibration [(singleHom (Around 0) 1), (singleHom (Through 0) 1)] [0, 1] 1
 
