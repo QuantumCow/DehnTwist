@@ -600,6 +600,7 @@ calculateSignatureStep phi attachingCircle
       mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
 
 calculateSignature :: HomologyPath -> Int
+calculateSignature p1 | traceShow ("calculate Signature " ++ (show (length p1))) False = 0
 calculateSignature p1 = go [] p1 0 1
   where
     go :: HomologyPath -> HomologyPath -> Int -> Int -> Int
