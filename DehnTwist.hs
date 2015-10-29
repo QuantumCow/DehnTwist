@@ -14,6 +14,9 @@ trA x = traceShow x x
 trLabel :: Show a => String -> a -> a
 trLabel text x = traceShow (text ++ " " ++ (show x)) x
 
+trxLabel :: Show a => String -> a -> a
+trxLabel text x = x
+
 data Generator = Around Int  -- ^ Around the circumference of hole @i@
                | Through Int -- ^ Through the hole of torus @i@
                deriving (Eq, Ord, Show)
@@ -29,6 +32,12 @@ isThrough (Through x) = True
 stripGenerator :: Generator -> Int
 stripGenerator (Around x) = x
 stripGenerator (Through x) = x
+
+data SignatureTestCase = SignatureTestCase { lf :: HomologyPath
+                                           , name :: String
+                                           , signature :: Int
+                                           , cycleLength :: Int
+                                           }
 
 data Homology' a = Homology { aLoop :: [a]
                             , bLoop :: [a]
@@ -264,6 +273,9 @@ findNonZeroIntersection h1 = go 0
       | otherwise
         = go (count + 1)
 
+showxMatrix :: [[Rational]] -> [[Rational]]
+showxMatrix x = x 
+        
 showMatrix :: [[Rational]] -> [[Rational]]
 showMatrix [] = []
 showMatrix (x:xs) = traceShow (map numerator x) ([x]++(showMatrix xs))
@@ -283,11 +295,17 @@ findMissingOne ones = go ones 0
                 | otherwise = n
     go [] n = n
 
-getPQ :: [[Rational]] -> Int
-getPQ m | (row > 1) = calculateDelta [(m!!0)!!row, (m!!1)!!row]
-        | otherwise = 0
+isGoodPair :: (Rational, Rational) -> Bool
+isGoodPair (0, 0) = False
+isGoodPair (x, y) = True
+    
+getPQ :: [[Rational]] -> Int    
+getPQ m | ((firstOne == Nothing) || ((fromJust firstOne) > 1)) = calculateDelta ((m!!0)!!1, -1)
+        | otherwise = if (pairs == []) then 0 else (calculateDelta (pairs!!0))
   where
-    row = findMissingOne (getOneCols m) 
+    firstOne = oneIndex (m!!1)
+    pairs = filter isGoodPair (drop 2 (zip (m!!0) (m!!1)))
+  
    
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
@@ -334,8 +352,27 @@ testZeroHomology :: Homology -> Bool
 testZeroHomology h1 = all (==0) (aLoop h1) && all (==0) (bLoop h1)
 
 printAllTests :: [(Integer, Integer)]
-printAllTests = (zip [-8, -4, -12, -18, -24, -48, -42] (map (toInteger . calculateSignature) [testGenusOne, matsumoto, matsumotoA, matsumotoB, matsumotoC, fullerA, fullerB]))
+printAllTests = (zip [-8, -4, -12, -18, -24, -18, -10, -20, -30, -48, -42, -1, -8, -11, -16] (map (toInteger . calculateSignature)
+    [testGenusOne, matsumoto, matsumotoA, matsumotoB, matsumotoC, matsumotoD, genusTwoDiscA, genusTwoDiscB, genusTwoDiscC,
+    fullerA, fullerB, genusThreeDiscA, genusThreeDiscB, genusThreeDiscC, genusThreeDiscD]))
 
+allTestCases :: [SignatureTestCase]
+allTestCases = [(SignatureTestCase testGenusOne "testGenusOne" (-8) 2),
+                (SignatureTestCase matsumoto "matsumoto" (-4) 4),
+                (SignatureTestCase matsumotoA "matsumotoA" (-12) 10),
+                (SignatureTestCase matsumotoB "matsumotoB" (-18) 5),
+                (SignatureTestCase matsumotoC "matsumotoC" (-24) 4),
+                (SignatureTestCase matsumotoD "matsumotoD" (-18) 15),
+                (SignatureTestCase genusTwoDiscA "genusTwoDiscA" (-10) 1),
+                (SignatureTestCase genusTwoDiscB "genusTwoDiscB" (-20) 1),
+                (SignatureTestCase genusTwoDiscC "genusTwoDiscC" (-30) 1),
+                (SignatureTestCase fullerA "fullerA" (-48) 6),
+                (SignatureTestCase fullerB "fullerB" (-42) 74),
+                (SignatureTestCase genusThreeDiscA "genusThreeDiscA" (-1) 1),
+                (SignatureTestCase genusThreeDiscB "genusThreeDiscB" (-8) 1),
+                (SignatureTestCase genusThreeDiscC "genusThreeDiscC" (-11) 1),
+                (SignatureTestCase genusThreeDiscD "genusThreeDiscD" (-16) 1)]
+    
 runAllTests :: String
 runAllTests
   | ((calculateSignature testGenusOne) /= -8) = "Genus One Failed"
@@ -343,17 +380,53 @@ runAllTests
   | ((calculateSignature matsumotoA) /= -12) = "matsumotoA Failed"
   | ((calculateSignature matsumotoB) /= -18) = "matsumotoB Failed"
   | ((calculateSignature matsumotoC) /= -24) = "matsumotoC Failed"
+  | ((calculateSignature matsumotoD) /= -18) = "matsumotoD Failed"
+  | ((calculateSignature genusTwoDiscA) /= -10) = "genusTwoDiscA Failed"
+  | ((calculateSignature genusTwoDiscB) /= -20) = "genusTwoDiscB Failed"
+  | ((calculateSignature genusTwoDiscC) /= -30) = "genusTwoDiscC Failed"
   | ((calculateSignature fullerA) /= -48) = "fullerA Failed"
   | ((calculateSignature fullerB) /= -42) = "fullerB Failed"
+  | ((calculateSignature genusThreeDiscA) /= -1) = "genusTwoDiscA Failed"
+  | ((calculateSignature genusThreeDiscB) /= -8) = "genusTwoDiscB Failed"
+  | ((calculateSignature genusThreeDiscC) /= -11) = "genusTwoDiscC Failed"
+  | ((calculateSignature genusThreeDiscD) /= -16) = "genusTwoDiscD Failed"
+  | otherwise = "All worked!"
 
-
+bigTest :: [SignatureTestCase] -> Bool
+bigTest [] = (trLabel "All Tests Passed" True)
+bigTest (x:xs) = if (nextTest == Nothing)
+                           then (trLabel (name x) (bigTest xs)) 
+                           else (trLabel ((name x)++" Failed on "++(show (snd (fromJust nextTest)))++" with "++(show (fst (fromJust nextTest)))) False)
+   where
+     nextTest = checkRotations (lf x) (cycleLength x) (signature x)
+  
+checkRotations :: HomologyPath -> Int -> Int -> Maybe (Int, Int)
+checkRotations lf 0 answer = Nothing
+checkRotations lf n answer = if (nextAnswer == answer) then (checkRotations lf (n-1) answer) else (Just (nextAnswer, (n-1)))
+   where
+     nextAnswer = testRotation lf (n-1)
+     
+testRotation :: HomologyPath -> Int -> Int
+testRotation lf n = calculateSignature ((drop n lf)++(take n lf))
+  
+testAllRotations :: HomologyPath -> [Int]
+testAllRotations lf = testRotations lf (length lf)
+  
+testRotations :: HomologyPath -> Int -> [Int]
+testRotations lf n = go lf [] [] n
+  where
+    go :: HomologyPath -> HomologyPath -> [Int] -> Int -> [Int]
+    go x y acc 0 = acc
+    go [] y acc n = acc
+    go (x:xs) y acc n = go xs (y++[x]) (acc ++ [(calculateSignature (([x]++xs)++y))]) (n-1)
+  
 testGenusOne :: HomologyPath
 testGenusOne = lefschetzFibration [(singleHom (Around 0) 1), (singleHom (Through 0) 1)] [0, 1] 6
 
 matsumoto :: HomologyPath
 matsumoto = lefschetzFibration (go 0) [0, 1, 2, 3] 2
   where
-    go :: Integer-> HomologyPath
+    go :: Integer -> HomologyPath
     go 0 = [Homology [1, 1] [0, 0]] ++ go 1
     go 1 = [Homology [0, 0] [0, 0]] ++ go 2
     go 2 = [Homology [0, 0] [-1, -1]] ++ go 3
@@ -406,6 +479,19 @@ matsumotoB = lefschetzFibration genusTwoGenerators [0, 1, 2, 3, 4] 6
 matsumotoC :: HomologyPath
 matsumotoC = lefschetzFibration genusTwoGenerators [0, 1, 2, 3] 10
 
+matsumotoD :: HomologyPath
+matsumotoD = lefschetzFibration genusTwoGenerators [4, 0, 3, 1, 2, 3, 1, 4, 0, 3, 1, 2, 3, 1, 2] 2
+
+genusTwoDiscA :: HomologyPath
+genusTwoDiscA = lefschetzFibration genusTwoGenerators [0, 2, 4, 1, 3, 1, 0, 0, 0, 2, 4, 2, 4, 1, 3, 4] 1
+
+genusTwoDiscB :: HomologyPath
+genusTwoDiscB = lefschetzFibration genusTwoGenerators [0, 2, 4, 1, 3, 1, 0, 0, 0, 2, 4, 2, 4, 1, 3, 4] 2
+
+genusTwoDiscC :: HomologyPath
+genusTwoDiscC = lefschetzFibration genusTwoGenerators [0, 2, 4, 1, 3, 1, 0, 0, 0, 2, 4, 2, 4, 1, 3, 4] 3
+
+
 genusTwoGenerators :: HomologyPath
 genusTwoGenerators = [(Homology [0, 0] [-1, 0]),
                       (Homology [1, 0] [0, 0]),
@@ -413,6 +499,8 @@ genusTwoGenerators = [(Homology [0, 0] [-1, 0]),
                       (Homology [0, 1] [0, 0]),
                       (Homology [0, 0] [0, 1])]
 
+                      
+                      
 fullerA :: HomologyPath
 fullerA = lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 14
 
@@ -420,6 +508,20 @@ fullerB :: HomologyPath
 fullerB = (lefschetzFibration genusThreeGenerators [7, 8, 3, 2, 1, 0, 4, 3, 2, 1, 5, 4, 3, 2] 1) ++
           (lefschetzFibration genusThreeGenerators [0, 1, 2, 3, 4, 5] 10)
 
+genusThreeDiscA :: HomologyPath
+genusThreeDiscA = lefschetzFibration genusThreeGenerators [0, 2, 4, 6, 1, 3, 5] 1
+
+genusThreeDiscB :: HomologyPath
+genusThreeDiscB = lefschetzFibration genusThreeGenerators [0, 2, 4, 6, 1, 3, 5] 2
+
+genusThreeDiscC :: HomologyPath
+genusThreeDiscC = lefschetzFibration genusThreeGenerators [0, 2, 4, 6, 1, 3, 5] 3
+
+genusThreeDiscD :: HomologyPath
+genusThreeDiscD = lefschetzFibration genusThreeGenerators [0, 2, 4, 6, 1, 3, 5] 4
+
+          
+          
 genusThreeGenerators :: HomologyPath
 genusThreeGenerators = [(Homology [0, 0, 0] [1, 0, 0]),
                         (Homology [1, 0, 0] [0, 0, 0]),
@@ -465,15 +567,15 @@ homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
 
 calculateABC :: Homology -> Homology -> [Homology] -> Int
-calculateABC l m mod = getPQ (showMatrix (rref (showMatrix (homologyToMatrices l m mod))))
+calculateABC l m mod = getPQ (showxMatrix (rref (showxMatrix (homologyToMatrices l m mod))))
 
-calculateDelta :: [Rational] -> Int
-calculateDelta abc
+calculateDelta :: (Rational, Rational) -> Int
+calculateDelta (a, b)
   | (result < 0) = 1
   | (result == 0) = 0
   | (result > 0) = -1
   where
-    result = (abc!!0 + abc!!1)*(abc!!0)
+    result = (a + b)*(a)
 
 generateRelationBasis :: Homology -> Homology -> HomologyPath
 generateRelationBasis gamma e = map (toIntegerHomology . go) (delete e (generateAllHomologies (genus e)))
@@ -487,22 +589,22 @@ generateRelation phi l = subHom l (dehnTwistSeqHom phi l)
 
 calculateSignatureStep :: HomologyPath -> Homology -> Int
 calculateSignatureStep phi attachingCircle
-  | testZeroHomology attachingCircle = trace ("Signature Step: Attaching handle null, Add -1") (-1)
-  | testZeroHomology m = trace ("Signature Step: crossing loop e(m) is Null, Add 0") 0
-  | otherwise = trLabel ("Signature Step:") (calculateABC l m mod)
+  | testZeroHomology attachingCircle = trxLabel ("Signature Step: Attaching handle null, Add -1") (-1)
+  | testZeroHomology m = trxLabel ("Signature Step: crossing loop e(m) is Null, Add 0") 0
+  | otherwise = trxLabel ("Signature Step:") (calculateABC l m mod)
     where
       l = attachingCircle
-      basis = trLabel "RemainingBasis" (generateRemainingBasis l)
+      basis = trxLabel "RemainingBasis" (generateRemainingBasis l)
       e = (basis!!0)!!1
-      m = divHom (trLabel "DivOut" (subHom (trLabel "SubInA" e) (trLabel "SubInB" (dehnTwistSeqHom phi e))))  (dotHom l e)
+      m = divHom (trxLabel "DivOut" (subHom (trxLabel "SubInA" e) (trxLabel "SubInB" (dehnTwistSeqHom phi e))))  (dotHom l e)
       mod = map (generateRelation phi) ([l]++(drop 2 (concat basis)))
 
 calculateSignature :: HomologyPath -> Int
 calculateSignature p1 = go [] p1 0 1
   where
     go :: HomologyPath -> HomologyPath -> Int -> Int -> Int
-    go phi [] acc stepCount = (trLabel "calculateSignatureEnd" acc)
-    go phi (x : xs) acc stepCount = go (phi ++ [x]) xs ((trLabel ("calculateSignature"++(show stepCount)) acc) + (calculateSignatureStep phi x)) (stepCount + 1)
+    go phi [] acc stepCount = (trxLabel "calculateSignatureEnd" acc)
+    go phi (x : xs) acc stepCount = go (phi ++ [x]) xs ((trxLabel ("calculateSignature"++(show stepCount)) acc) + (calculateSignatureStep phi x)) (stepCount + 1)
 
 data Path = Path { unPath :: RawPath}
   deriving (Eq, Show)
