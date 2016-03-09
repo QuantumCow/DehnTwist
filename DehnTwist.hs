@@ -797,3 +797,6 @@ generateGammaRow (hBasis x:xs) = (map go (map firstStep hBasis x) xs)
     go output [x:xs] = go (map dehnTwistHom x output) xs
     firstStep :: Homology -> Homology -> HomologyPath
     firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
+    
+testNosaka :: [[Int]]
+testNosaka = (generateGamma (generateAllHomologies 2) matsumotoA)
