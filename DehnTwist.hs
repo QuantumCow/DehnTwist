@@ -333,6 +333,15 @@ rref m = f m 0 [0 .. rows - 1]
                     | otherwise = zipWith h newRow row
                   where h = subtract . (* row !! lead')
 
+getPivots :: Eq a => Fractional a => [[a]] -> [Int]
+getPivots [] = []
+getPivots (x:xs) = [(getPivot x)] ++ (getPivots xs)
+
+getPivot :: Eq a => Fractional a => [a] -> Int
+getPivot r | Just i <- firstOne = i
+           | otherwise          = -1
+  where firstOne = elemIndex (toRational 1/1) r
+
 replace :: Int -> a -> [a] -> [a]
 {- Replaces the element at the given index. -}
 replace n e l = a ++ e : b
