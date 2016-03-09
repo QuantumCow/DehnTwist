@@ -786,11 +786,11 @@ invert (Path raw) = (Path (go raw))
 
     
 generateGamma :: HomologyPath -> HomologyPath -> [[Int]]
-generate (hBasis [[]]) = [[]]
-generate (hBasis x : xs) = (generateGammaRow hBasis x) ++ (generate hBasis xs)
+generateGamma hBasis [[]] = [[]]
+generateGamma hBasis x:xs = (generateGammaRow hBasis x) ++ (generate hBasis xs)
 
 generateGammaRow :: HomologyPath -> HomologyPath -> HomologyPath 
-generateGammaRow (hBasis x:xs) = (map go (map firstStep hBasis x) xs)
+generateGammaRow hBasis x:xs = (map go (map firstStep hBasis x) xs)
   where
     go :: Homology -> Homology -> HomologyPath
     go output [] = output
