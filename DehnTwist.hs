@@ -783,3 +783,17 @@ invert (Path raw) = (Path (go raw))
     go [] = []
     go (Pos x : rest) = (go rest) ++ [Neg x]
     go (Neg x : rest) = (go rest) ++ [Pos x]
+
+    
+generateGamma :: HomologyPath -> HomologyPath -> [[Int]]
+generate (hBasis [[]]) = [[]]
+generate (hBasis x : xs) = (generateGammaRow hBasis x) ++ (generate hBasis xs)
+
+generateGammaRow :: HomologyPath -> HomologyPath -> HomologyPath 
+generateGammaRow (hBasis x:xs) = (map go (map firstStep hBasis x) xs)
+  where
+    go :: Homology -> Homology -> HomologyPath
+    go output [] = output
+    go output [x:xs] = go (map dehnTwistHom x output) xs
+    firstStep :: Homology -> Homology -> HomologyPath
+    firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
