@@ -785,18 +785,19 @@ invert (Path raw) = (Path (go raw))
     go (Neg x : rest) = (go rest) ++ [Pos x]
 
     
-generateGamma :: HomologyPath -> HomologyPath -> [[Int]]
-generateGamma hBasis [[]] = [[]]
-generateGamma hBasis x:xs = (generateGammaRow hBasis x) ++ (generate hBasis xs)
+testNosaka :: [[Rational]]
+testNosaka = (generateGamma (generateAllHomologies 2) matsumotoA)
 
-generateGammaRow :: HomologyPath -> HomologyPath -> HomologyPath 
-generateGammaRow hBasis x:xs = (map go (map firstStep hBasis x) xs)
+generateGamma :: HomologyPath -> HomologyPath -> [[Rational]]
+generateGamma hBasis [] = []
+generateGamma hBasis (x:xs) = (generateGammaRow hBasis (x:xs)) ++ (generateGamma hBasis xs)
+
+generateGammaRow :: HomologyPath -> HomologyPath -> [[Rational]]
+generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y x) xs) hBasis))
   where
-    go :: Homology -> Homology -> HomologyPath
+    go :: Homology -> HomologyPath -> Homology
     go output [] = output
-    go output [x:xs] = go (map dehnTwistHom x output) xs
-    firstStep :: Homology -> Homology -> HomologyPath
+    go output (x:xs) = go (dehnTwistHom x output) xs
+    firstStep :: Homology -> Homology -> Homology
     firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
     
-testNosaka :: [[Int]]
-testNosaka = (generateGamma (generateAllHomologies 2) matsumotoA)
