@@ -332,7 +332,23 @@ rref m = f m 0 [0 .. rows - 1]
                     | n == r    = row
                     | otherwise = zipWith h newRow row
                   where h = subtract . (* row !! lead')
+                  
+generateIdentity :: Int -> [[Rational]]
+generateIdentity n = 
+                  
+extractKernel :: Eq a => Fractional a => [[a]] -> [[a]]
+extractKernel m = m 
+                  
+removeRowN :: Eq a => Fractional a => [[a]] -> Int -> [[a]]
+removeRowN m r = let (ys,zs) = splitAt r m   in   ys ++ (tail zs)
 
+removePivots :: Eq a => Fractional a => [[a]] -> [[a]]
+removePivots m = go (transpose m) (getPivots m)
+  where
+    go :: Eq a => Fractional a => [[a]] -> [Int] -> [[a]]
+    go m1 (x : xs) | (x < 0)   = m1
+                   | otherwise = removeRowN x (go m1 xs) {- notice order here is important. remove later rows first so indexing is accurate -}
+                  
 getPivots :: Eq a => Fractional a => [[a]] -> [Int]
 getPivots [] = []
 getPivots (x:xs) = [(getPivot x)] ++ (getPivots xs)
@@ -340,7 +356,7 @@ getPivots (x:xs) = [(getPivot x)] ++ (getPivots xs)
 getPivot :: Eq a => Fractional a => [a] -> Int
 getPivot r | Just i <- firstOne = i
            | otherwise          = -1
-  where firstOne = elemIndex (toRational 1/1) r
+  where firstOne = elemIndex 1 r
 
 replace :: Int -> a -> [a] -> [a]
 {- Replaces the element at the given index. -}
@@ -798,8 +814,11 @@ testNosaka :: [[Rational]]
 testNosaka = (generateGamma (generateAllHomologies 2) matsumotoA)
 
 generateGamma :: HomologyPath -> HomologyPath -> [[Rational]]
-generateGamma hBasis [] = []
-generateGamma hBasis (x:xs) = (generateGammaRow hBasis (x:xs)) ++ (generateGamma hBasis xs)
+generateGamma hBasis monodromy = transpose (go monodromy)
+  where 
+    go :: HomologyPath -> [[Rational]]
+    go [] = []
+    go (x:xs) = (generateGammaRow hBasis (x:xs)) ++ (go xs)
 
 generateGammaRow :: HomologyPath -> HomologyPath -> [[Rational]]
 generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y x) xs) hBasis))
