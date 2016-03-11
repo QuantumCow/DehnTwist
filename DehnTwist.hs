@@ -347,12 +347,21 @@ findMissing :: [Int] -> [Int]
 findMissing l = filter (\x -> notElem x l) [0..top]
   where top = maximum l
 
+insertIdentity :: [[Rational]] -> [[Rational]] -> [Int]
+insertIdentity m i [] = m ++ i
+insertIdentity m (i:is) (missing:missings) = insertRowN (insertIdentity is missings) i missing 
+{- Note that the order here is important since adding a row changes the indices. We must add later first -}
+
 extractKernel :: [[Rational]] -> [[Rational]]
-extractKernel m = mOut ++ (generateIdentity (length (mOut!!0)))
-  where mOut = (negateMatrix (removePivots (rref m)))
+extractKernel m = insertIdentity mOut (generateIdentity (length (mOut!!0))) (findMissing (getPivots rf))
+  where mOut = (negateMatrix (removePivots rf))
+        rf   = rref m
                   
 removeRowN :: Eq a => Fractional a => [[a]] -> Int -> [[a]]
 removeRowN m r = let (ys,zs) = splitAt r m   in   ys ++ (tail zs)
+
+insertRowN :: Eq a => Fractional a => [[a]] -> [a] -> Int
+insertRowN m r n = let (ys,zs) = splitAt r m   in   ys ++ [r] ++ zs
 
 removePivots :: Eq a => Fractional a => [[a]] -> [[a]]
 removePivots m = (transpose (go (transpose m) (getPivots m)))
