@@ -334,20 +334,33 @@ rref m = f m 0 [0 .. rows - 1]
                   where h = subtract . (* row !! lead')
                   
 generateIdentity :: Int -> [[Rational]]
-generateIdentity n = 
+generateIdentity n = go n
+  where
+    go :: Int -> [[Rational]]
+    go 0 = []
+    go m = [(replicate (n - m) (toRational 0/1)) ++ [(toRational 1/1)] ++ (replicate (m-1) (toRational 0/1))] ++ (go (m-1))
                   
-extractKernel :: Eq a => Fractional a => [[a]] -> [[a]]
-extractKernel m = m 
+negateMatrix :: Eq a => Fractional a => [[a]] -> [[a]]
+negateMatrix m = map (\x -> (map (\y -> -y) x)) m                  
+
+findMissing :: [Int] -> [Int]
+findMissing l = filter (\x -> notElem x l) [0..top]
+  where top = maximum l
+
+extractKernel :: [[Rational]] -> [[Rational]]
+extractKernel m = mOut ++ (generateIdentity (length (mOut!!0)))
+  where mOut = (negateMatrix (removePivots (rref m)))
                   
 removeRowN :: Eq a => Fractional a => [[a]] -> Int -> [[a]]
 removeRowN m r = let (ys,zs) = splitAt r m   in   ys ++ (tail zs)
 
 removePivots :: Eq a => Fractional a => [[a]] -> [[a]]
-removePivots m = go (transpose m) (getPivots m)
+removePivots m = (transpose (go (transpose m) (getPivots m)))
   where
     go :: Eq a => Fractional a => [[a]] -> [Int] -> [[a]]
+    go m1 []                   = m1
     go m1 (x : xs) | (x < 0)   = m1
-                   | otherwise = removeRowN x (go m1 xs) {- notice order here is important. remove later rows first so indexing is accurate -}
+                   | otherwise = removeRowN (go m1 xs) x {- notice order here is important. remove later rows first so indexing is accurate -}
                   
 getPivots :: Eq a => Fractional a => [[a]] -> [Int]
 getPivots [] = []
