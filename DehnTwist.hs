@@ -340,6 +340,11 @@ generateIdentity n = go n
     go 0 = []
     go m = [(replicate (n - m) (toRational 0/1)) ++ [(toRational 1/1)] ++ (replicate (m-1) (toRational 0/1))] ++ (go (m-1))
                   
+{- Note this function will fail if given an odd vector, but we want that since symplectic spaces must be even -}                  
+symplecticDot :: Eq a => Fractional a => [a] -> [a] -> a
+symplecticDot [] [] = 0/1
+symplecticDot (x1:x2:xs) (y1:y2:ys) = ((x1*y2) - (x2*y1)) + (symplecticDot xs ys)                  
+                  
 negateMatrix :: Eq a => Fractional a => [[a]] -> [[a]]
 negateMatrix m = map (\x -> (map (\y -> -y) x)) m                  
 
