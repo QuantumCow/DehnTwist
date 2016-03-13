@@ -110,6 +110,10 @@ dehnTwistHom twist path =
 dehnTwistSeqHom :: HomologyPath -> Homology -> Homology
 dehnTwistSeqHom xs h1 = foldl (flip dehnTwistHom) h1 xs
 
+inverseDehnTwistHom :: Num a => Homology' a -> Homology' a -> Homology' a
+inverseDehnTwistHom twist path =
+  path `subHom` (twist `mulHom` dotHom twist path)
+
 singleHom :: Generator -> Int -> Homology
 singleHom (Around homIndex) genus
    = Homology ((replicate homIndex 0) ++ [1] ++ (replicate (genus-homIndex-1) 0)) (replicate genus 0)
@@ -332,7 +336,24 @@ rref m = f m 0 [0 .. rows - 1]
                     | n == r    = row
                     | otherwise = zipWith h newRow row
                   where h = subtract . (* row !! lead')
+
+{-Convert a vector of homologies into a list of homologies, genus n-}
+{-Note this will fail if the length of v is not a multiple of 2n -}
+vectorToHomologyPath :: [Integer] -> Int -> HomologyPath
+vectorToHomologyPath [] n = []
+vectorToHomologyPath v n = [(vectorToHomology v n)] ++ (vectorToHomologyPath (drop (2*n) v) n)               
                   
+{- Take the first 2n terms from v, and make a homology out of them -}
+{- a1 b1 a2 b2 -> Homology (a1 a2) (b1 b2))-}
+vectorToHomology :: [Integer] -> Int -> Homology
+vectorToHomology v n = Homology left right      
+  where
+    (left, right) = go v n
+    go :: [Integer] -> Int -> ([Integer],[Integer])
+    go va 0 = ([],[])
+    go (v1:v2:vx) na = ([v1]++nextL, [v2]++nextR)
+      where (nextL, nextR) = go vx (na-1)
+    
 generateIdentity :: Int -> [[Rational]]
 generateIdentity n = go n
   where
@@ -838,10 +859,45 @@ invert (Path raw) = (Path (go raw))
 
     
 testNosaka :: [[Rational]]
-testNosaka = (generateGamma (generateAllHomologies 2) matsumotoA)
+testNosaka = (generateGammaMatrix (generateAllHomologies 2) matsumotoA)
 
-generateGamma :: HomologyPath -> HomologyPath -> [[Rational]]
-generateGamma hBasis monodromy = transpose (go monodromy)
+calculateQMatrix :: [HomologyPath] -> HomologyPath -> [[Int]]
+calculateQMatrix kernel monodromy = [[0]] {-placeholder-}
+  where
+    go :: [HomologyPath] -> [[Int]]
+    go [] -> []
+    go [x:xs] = [calculateQMatrix x kernel monodromy]++(go xs)
+
+calculateQMatrixRow :: HomologyPath -> [HomologyPath] -> HomologyPath -> [Int]
+calculateQMatrixRow x [] monodromy = []
+calculateQMatrixRow x [y:ys] monodromy = [calculateQ x y monodromy] ++ (calculateQMatrixRow x ys monodromy)
+
+calculateQ :: HomologyPath -> HomologyPath -> HomologyPath -> Integer
+calcualteQ x y monodromy = 0 {-placeholder-}
+
+generateLeft :: HomologyPath -> HomologyPath -> HomologyPath
+generateLeft x monodromy = go []
+  where
+    stop = (length monodromy)
+    xiDiff :: Int -> Homology
+    xiDiff n = subHom (x!!(n-1)) (x!!n)
+    go :: Homology -> Int -> HomologyPath
+    go acc 1 = [xiDiff 1] ++ (go (xiDiff 1) 2)
+    go acc n | (n == stop) = []
+             | otherwise   = [addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)] ++ (go (addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)) (n+1))
+
+generateRight :: HomologyPath -> HomologyPath -> HomologyPath
+generateRight y monodromy = 
+
+generateGammaKernel :: Int -> HomologyPath -> [HomologyPath]
+generateGammaKernel genus monodromy = go (extractKernel (generateGammaMatrix (generateAllHomologies genus) monodromy))
+  where
+    go :: [[Rational]] -> [HomologyPath]
+    go [] = []
+    go (x:xs) = [(vectorToHomologyPath (map round x) genus)] ++ (go xs)
+
+generateGammaMatrix :: HomologyPath -> HomologyPath -> [[Rational]]
+generateGammaMatrix hBasis monodromy = transpose (go monodromy)
   where 
     go :: HomologyPath -> [[Rational]]
     go [] = []
@@ -856,3 +912,5 @@ generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y
     firstStep :: Homology -> Homology -> Homology
     firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
     
+
+   
