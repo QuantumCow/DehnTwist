@@ -379,7 +379,7 @@ insertIdentity m (i:is) (missing:missings) = insertRowN (insertIdentity m is mis
 {- Note that the order here is important since adding a row changes the indices. We must add later first -}
 
 extractKernel :: [[Rational]] -> [[Rational]]
-extractKernel m = insertIdentity mOut (generateIdentity (length (mOut!!0))) (findMissing (getPivots rf))
+extractKernel m = transpose (insertIdentity mOut (generateIdentity (length (mOut!!0))) (findMissing (getPivots rf)))
   where mOut = (negateMatrix (removePivots rf))
         rf   = rref m
                   
@@ -858,8 +858,9 @@ invert (Path raw) = (Path (go raw))
     go (Neg x : rest) = (go rest) ++ [Pos x]
 
     
-testNosaka :: [[Rational]]
-testNosaka = (generateGammaMatrix (generateAllHomologies 2) matsumotoA)
+testNosaka :: [[Integer]]
+testNosaka = calculateQMatrix (generateGammaKernel 2 matsumotoA) matsumotoA
+
 
 calculateQMatrix :: [HomologyPath] -> HomologyPath -> [[Integer]]
 calculateQMatrix kernel monodromy = go kernel
