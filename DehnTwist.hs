@@ -861,22 +861,26 @@ invert (Path raw) = (Path (go raw))
 testNosaka :: [[Rational]]
 testNosaka = (generateGammaMatrix (generateAllHomologies 2) matsumotoA)
 
-calculateQMatrix :: [HomologyPath] -> HomologyPath -> [[Int]]
-calculateQMatrix kernel monodromy = [[0]] {-placeholder-}
+calculateQMatrix :: [HomologyPath] -> HomologyPath -> [[Integer]]
+calculateQMatrix kernel monodromy = go kernel
   where
-    go :: [HomologyPath] -> [[Int]]
-    go [] -> []
-    go [x:xs] = [calculateQMatrix x kernel monodromy]++(go xs)
+    go :: [HomologyPath] -> [[Integer]]
+    go [] = []
+    go (x:xs) = [calculateQMatrixRow x kernel monodromy]++(go xs)
 
-calculateQMatrixRow :: HomologyPath -> [HomologyPath] -> HomologyPath -> [Int]
+calculateQMatrixRow :: HomologyPath -> [HomologyPath] -> HomologyPath -> [Integer]
 calculateQMatrixRow x [] monodromy = []
-calculateQMatrixRow x [y:ys] monodromy = [calculateQ x y monodromy] ++ (calculateQMatrixRow x ys monodromy)
+calculateQMatrixRow x (y:ys) monodromy = [calculateQ x y monodromy] ++ (calculateQMatrixRow x ys monodromy)
 
 calculateQ :: HomologyPath -> HomologyPath -> HomologyPath -> Integer
-calcualteQ x y monodromy = 0 {-placeholder-}
+calculateQ x y monodromy = go (generateLeft x monodromy) (generateRight y monodromy)
+  where
+    go :: HomologyPath -> HomologyPath -> Integer
+    go [] []         = 0
+    go (x:xs) (y:ys) = (dotHom x y) + (go xs ys)
 
 generateLeft :: HomologyPath -> HomologyPath -> HomologyPath
-generateLeft x monodromy = go []
+generateLeft x monodromy = go (x!!0) 1 {-x!!0 is a dummy variable -}
   where
     stop = (length monodromy)
     xiDiff :: Int -> Homology
@@ -887,7 +891,12 @@ generateLeft x monodromy = go []
              | otherwise   = [addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)] ++ (go (addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)) (n+1))
 
 generateRight :: HomologyPath -> HomologyPath -> HomologyPath
-generateRight y monodromy = 
+generateRight y monodromy = go 1
+  where
+    stop = (length monodromy)
+    go :: Int -> HomologyPath
+    go n | (n == stop) = []
+         | otherwise   = [subHom (y!!n) (inverseDehnTwistHom (monodromy!!n) (y!!n))] ++ (go (n+1))
 
 generateGammaKernel :: Int -> HomologyPath -> [HomologyPath]
 generateGammaKernel genus monodromy = go (extractKernel (generateGammaMatrix (generateAllHomologies genus) monodromy))
