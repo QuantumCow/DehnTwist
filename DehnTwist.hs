@@ -1,12 +1,13 @@
 {-# LANGUAGE DeriveFunctor #-}
-
 import Control.Applicative
 import Data.Foldable
 import Data.Monoid
-import Data.List
+import Data.List (transpose, delete, findIndex, intercalate, elemIndex, isInfixOf)
 import Data.Ratio
 import Data.Maybe
 import Debug.Trace
+import Prelude hiding (concatMap, foldr, foldl, foldl', concat, all, maximum, find, sum, notElem)
+
 
 trA :: Show a => a -> a
 trA x = traceShow x x
@@ -57,6 +58,14 @@ genus h1 = length (aLoop h1)
 
 rationalize :: Homology -> RationalHomology
 rationalize = mapHom toRational
+
+rationalizeMatrix :: [[Integer]] -> [[Rational]]
+rationalizeMatrix [] = []
+rationalizeMatrix (x:xs) = [(map toRational x)] ++ (rationalizeMatrix xs)
+
+roundMatrix :: [[Rational]] -> [[Integer]]
+roundMatrix [] = []
+roundMatrix (x:xs) = [(map round x)] ++ (roundMatrix xs)
 
 toIntegerHomology :: RationalHomology -> Homology
 toIntegerHomology rh = mapHom (floor . ((toRational mult) *)) rh
@@ -922,5 +931,36 @@ generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y
     firstStep :: Homology -> Homology -> Homology
     firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
     
+isDiagonal :: HomologyPath -> Bool
+isDiagonal [] = True
+isDiagonal (x:xs) | (length xs)==0 = True
+                  | otherwise = ((x == (xs!!0)) && (isDiagonal xs))
+
+isZero :: HomologyPath -> HomologyPath -> Bool
+isZero [] [] = True
+isZero (v:vs) (m:ms) = ((v == (dehnTwistHom m v)) && (isZero vs ms))
+
+countZeros :: [HomologyPath] -> HomologyPath -> Int
+countZeros [] m = 0
+countZeros (v:vs) m | ((isDiagonal v) || (isZero v m)) = (1 + (countZeros vs m))
+                    | otherwise = countZeros vs m
+   
+generateZeros :: [HomologyPath] -> HomologyPath -> [Int]
+generateZeros v m = go v 0
+  where
+    go :: [HomologyPath] -> Int -> [Int]
+    go [] current = []
+    go (v:vs) current | ((isDiagonal v) || (isZero v m)) = ([current] ++ (go vs (current + 1)))
+                      | otherwise = go vs (current + 1)
+
+removeZeroRows :: [HomologyPath] -> HomologyPath -> [HomologyPath]
+removeZeroRows v m = go v
+  where
+    go :: [HomologyPath] -> [HomologyPath]
+    go [] = []
+    go (v:vs) | ((isDiagonal v) || (isZero v m)) = (go vs)
+              | otherwise = ([v] ++ (go vs))
+              
+
 
    
