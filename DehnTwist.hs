@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-import Nummeric.LinearAlgebra hiding (list, (<>))-}
 import Control.Applicative
 import Data.Foldable
 import Data.Monoid
@@ -62,6 +63,10 @@ rationalize = mapHom toRational
 rationalizeMatrix :: [[Integer]] -> [[Rational]]
 rationalizeMatrix [] = []
 rationalizeMatrix (x:xs) = [(map toRational x)] ++ (rationalizeMatrix xs)
+
+doublizeMatrix :: [[Integer]] -> [[Double]]
+doublizeMatrix [] = []
+doublizeMatrix (x:xs) = [(map fromIntegral x)] ++ (doublizeMatrix xs)
 
 roundMatrix :: [[Rational]] -> [[Integer]]
 roundMatrix [] = []
@@ -668,7 +673,11 @@ rotateMonodromy :: HomologyPath -> Int -> HomologyPath
 rotateMonodromy h1 n = take (length h1) (drop n (cycle h1))
 
 homologyToList :: Real a => Homology' a -> [Rational]
-homologyToList h1 = map toRational ((aLoop h1) ++ (bLoop h1))
+homologyToList h1 = map toRational (go (aLoop h1) (bLoop h1))
+  where
+    go :: [a] -> [a] -> [a]
+    go [] [] = []
+    go (al:als) (bl:bls) = [al, bl] ++ (go als bls) 
 
 homologyToMatrices :: Homology -> Homology -> [Homology] -> [[Rational]]
 homologyToMatrices l m mod = transpose ([(homologyToList l), (homologyToList m)] ++ (map homologyToList mod))
@@ -908,6 +917,10 @@ generateRight y monodromy = go 1
     go n | (n == stop) = []
          | otherwise   = [subHom (y!!n) (inverseDehnTwistHom (monodromy!!n) (y!!n))] ++ (go (n+1))
 
+{- genus is the genus of the fiber -}
+{- monodromy is a list of m dehn twists representing the monodromy -}
+{- returns a list of vectors which are in the kernel of gamma -}
+{- each vector is a list of m homologies representing x1 through xm -}  
 generateGammaKernel :: Int -> HomologyPath -> [HomologyPath]
 generateGammaKernel genus monodromy = go (extractKernel (generateGammaMatrix (generateAllHomologies genus) monodromy))
   where
@@ -915,6 +928,9 @@ generateGammaKernel genus monodromy = go (extractKernel (generateGammaMatrix (ge
     go [] = []
     go (x:xs) = [(vectorToHomologyPath (map round x) genus)] ++ (go xs)
 
+{- hBasis is a basis for the homology. It must be in order a1 b1 a2 b2... -}
+{- monodromy is a list of m dehn twists representing the monodromy -}
+{- returns the gamma matrix so that we can compute the kernel of it as in the Nosaka paper -}
 generateGammaMatrix :: HomologyPath -> HomologyPath -> [[Rational]]
 generateGammaMatrix hBasis monodromy = transpose (go monodromy)
   where 
@@ -929,7 +945,7 @@ generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y
     go output [] = output
     go output (x:xs) = go (dehnTwistHom x output) xs
     firstStep :: Homology -> Homology -> Homology
-    firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
+    firstStep h1 oper = (subHom (dehnTwistHom oper h1) h1)
     
 isDiagonal :: HomologyPath -> Bool
 isDiagonal [] = True
@@ -960,7 +976,19 @@ removeZeroRows v m = go v
     go [] = []
     go (v:vs) | ((isDiagonal v) || (isZero v m)) = (go vs)
               | otherwise = ([v] ++ (go vs))
-              
 
-
+{- A test function to get 4x4 blocks from the gamma matrix operating on the matsumotoA monodromy -}
+{- order is a1 b1 a2 b2 (different than the way homology is stored)-}
+testGammaBlock :: Int -> [[Integer]]
+testGammaBlock n = take 4 (drop (4*n) gmti)
+  where 
+    gm = generateGammaMatrix (generateAllHomologies 2) matsumotoA
+    gmt = transpose gm
+    gmti = roundMatrix gmt
+    
+{-loadNosaka :: Matrix Double
+loadNosaka = fromLists (doublizeMatrix (calculateQMatrix nz matsumotoA))
+  where
+    kernel = generateGammaKernel 2 matsumotoA
+    nz = removeZeroRows kernel matsumotoA-}
    
