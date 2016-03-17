@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
-{-import Nummeric.LinearAlgebra hiding (list, (<>))-}
+{-import Numeric.LinearAlgebra hiding (find, (<>))-}
 import Control.Applicative
 import Data.Foldable
 import Data.Monoid
@@ -437,6 +437,9 @@ printHomology h1 = go h1 [aLoop h1, bLoop h1]
 
 testZeroHomology :: Homology -> Bool
 testZeroHomology h1 = all (==0) (aLoop h1) && all (==0) (bLoop h1)
+
+zeroHomology :: Int -> Homology
+zeroHomology genus = Homology (replicate genus 0) (replicate genus 0)
 
 printAllTests :: [(Integer, Integer)]
 printAllTests = (zip [-8, -4, -12, -18, -24, -18, -10, -20, -30, -48, -42, -1, -8, -11, -16] (map (toInteger . calculateSignature)
@@ -898,6 +901,15 @@ calculateQ x y monodromy = go (generateLeft x monodromy) (generateRight y monodr
     go [] []         = 0
     go (x:xs) (y:ys) = (dotHom x y) + (go xs ys)
 
+    
+{- This function generates the left arguments of the \psi arguments. -}
+{- It can be set up as a recursive list (L1, L2, ... L(M-1)) where M = monodromy length -}
+{- we should have L1 = (x1 - x2), and LN = ezn(L(N-1)) + (xn - x(n+1))-}
+{- for example, L2 = ez2(L1) + (x2 - x3) = ez2(x1 - x2) + (x2 - x3) -}
+{- keep in mind if you're reading the paper these would be written as actions on the right instead -}
+{- ez2 acts on x by the dehn twist along the curve z2 (monodromy!!1) acting on x -}
+{- x is a list of length M of input variables -}
+{- monodromy is the list of dehn twists representing the monodromy factorization -}
 generateLeft :: HomologyPath -> HomologyPath -> HomologyPath
 generateLeft x monodromy = go (x!!0) 1 {-x!!0 is a dummy variable -}
   where
@@ -909,13 +921,20 @@ generateLeft x monodromy = go (x!!0) 1 {-x!!0 is a dummy variable -}
     go acc n | (n == stop) = []
              | otherwise   = [addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)] ++ (go (addHom (dehnTwistHom (monodromy!!(n-1)) acc) (xiDiff n)) (n+1))
 
+
+{- This function generates the right arguments of the \psi arguments. -}
+{- This is simpler than the left, and has the form Rn = y(n+1) (1 - e(n+1)^(-1))-}
+{- so R1 = y2 - ez2inverse(y2) -}
+{- ez2 acts on x by the dehn twist along the curve z2 (monodromy!!1) acting on x -}
+{- x is a list of length M of input variables -}
+{- monodromy is the list of dehn twists representing the monodromy factorization -}
 generateRight :: HomologyPath -> HomologyPath -> HomologyPath
 generateRight y monodromy = go 1
   where
     stop = (length monodromy)
     go :: Int -> HomologyPath
-    go n | (n == stop) = []
-         | otherwise   = [subHom (y!!n) (inverseDehnTwistHom (monodromy!!n) (y!!n))] ++ (go (n+1))
+    go n | (n == stop) = [] {- stop at n=20 -}
+         | otherwise   = [subHom (y!!n) (inverseDehnTwistHom (monodromy!!n) (y!!n))] ++ (go (n+1)) {-remember y!!1 is y2 since it's 0 indexed -}
 
 {- genus is the genus of the fiber -}
 {- monodromy is a list of m dehn twists representing the monodromy -}
@@ -937,7 +956,9 @@ generateGammaMatrix hBasis monodromy = transpose (go monodromy)
     go :: HomologyPath -> [[Rational]]
     go [] = []
     go (x:xs) = (generateGammaRow hBasis (x:xs)) ++ (go xs)
-
+    
+{- hBasis is a basis for the homology. It must be in order a1 b1 a2 b2... -}
+{- second argument is the monodromy factorization -}
 generateGammaRow :: HomologyPath -> HomologyPath -> [[Rational]]
 generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y x) xs) hBasis))
   where
@@ -945,7 +966,25 @@ generateGammaRow hBasis (x:xs) = (map homologyToList (map (\y -> go (firstStep y
     go output [] = output
     go output (x:xs) = go (dehnTwistHom x output) xs
     firstStep :: Homology -> Homology -> Homology
-    firstStep h1 oper = (subHom (dehnTwistHom oper h1) h1)
+    firstStep h1 oper = (subHom h1 (dehnTwistHom oper h1))
+
+generateTotalGamma :: HomologyPath -> [[Rational]]
+generateTotalGamma monodromy = concatMap (\y -> (generateGammaBlock y monodromy)) [0..(n-1)]
+  where
+    n = length monodromy
+
+generateGammaBlock :: Int -> HomologyPath -> [[Rational]]
+generateGammaBlock k monodromy = (map homologyToList (map (\y -> (gamma (pack k n y) monodromy)) hBasis))
+  where
+    g = (genus (monodromy!!0))
+    n = length monodromy
+    hBasis = generateAllHomologies g
+    pack :: Int -> Int -> Homology -> HomologyPath
+    pack k n h = (replicate k (zeroHomology g)) ++ [h] ++ (replicate (n-k-1) (zeroHomology g))
+    
+gamma :: HomologyPath -> HomologyPath -> Homology
+gamma (x:xs) (m:ms) | ((length xs) == 0) = (dehnTwistSeqHom ms (subHom x (dehnTwistHom m x)))
+                    | otherwise = addHom (dehnTwistSeqHom ms (subHom x (dehnTwistHom m x))) (gamma xs ms)
     
 isDiagonal :: HomologyPath -> Bool
 isDiagonal [] = True
@@ -966,16 +1005,16 @@ generateZeros v m = go v 0
   where
     go :: [HomologyPath] -> Int -> [Int]
     go [] current = []
-    go (v:vs) current | ((isDiagonal v) || (isZero v m)) = ([current] ++ (go vs (current + 1)))
-                      | otherwise = go vs (current + 1)
+    go (v1:v1s) current | ((isDiagonal v1) || (isZero v1 m)) = ([current] ++ (go v1s (current + 1)))
+                      | otherwise = go v1s (current + 1)
 
 removeZeroRows :: [HomologyPath] -> HomologyPath -> [HomologyPath]
 removeZeroRows v m = go v
   where
     go :: [HomologyPath] -> [HomologyPath]
     go [] = []
-    go (v:vs) | ((isDiagonal v) || (isZero v m)) = (go vs)
-              | otherwise = ([v] ++ (go vs))
+    go (v1:v1s) | ((isDiagonal v1) || (isZero v1 m)) = (go v1s)
+              | otherwise = ([v1] ++ (go v1s))
 
 {- A test function to get 4x4 blocks from the gamma matrix operating on the matsumotoA monodromy -}
 {- order is a1 b1 a2 b2 (different than the way homology is stored)-}
