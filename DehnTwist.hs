@@ -322,9 +322,8 @@ getPQ m | ((firstOne == Nothing) || ((fromJust firstOne) > 1)) = calculateDelta 
         | otherwise = if (pairs == []) then 0 else (calculateDelta (pairs!!0))
   where
     firstOne = oneIndex (m!!1)
-    pairs = filter isGoodPair (drop 2 (zip (m!!0) (m!!1)))
-  
-   
+    pairs = filter isGoodPair (drop 2 (zip (m!!0) (m!!1)))    
+
 rref :: Eq a => Fractional a => [[a]] -> [[a]]
 rref m = f m 0 [0 .. rows - 1]
   where rows = length m
@@ -418,8 +417,8 @@ appendIdentity m = m ++ (generateIdentity (length (m!!0)))
   
 insertIdentity :: [[Rational]] -> [[Rational]] -> [Int] -> [[Rational]]
 insertIdentity m i [] = m ++ i
-insertIdentity m (i:is) (missing:missings) = insertRowN (insertIdentity m is missings) i missing 
-{- Note that the order here is important since adding a row changes the indices. We must add later first -}
+insertIdentity m (i:is) (missing:missings) = (insertIdentity (insertRowN m i missing) is missings)
+{- Note that the order here is important since adding a row changes the indices. We must add earlier first -}
 
 determineKernel :: [[Rational]] -> [[Rational]]
 determineKernel m = drop (length m) (rrefPartial (length m) (appendIdentity m))
@@ -428,7 +427,39 @@ extractKernel :: [[Rational]] -> [[Rational]]
 extractKernel m = transpose (insertIdentity mOut (generateIdentity (length (mOut!!0))) (findMissing (getPivots rf)))
   where mOut = (negateMatrix (removePivots rf))
         rf   = rref m
-                  
+
+
+testExtractKernel :: Bool
+testExtractKernel | (extractKernel kernelTestA) /= kernelA = False
+                  | (extractKernel kernelTestB) /= kernelB = False
+                  | (extractKernel kernelTestC) /= kernelC = False
+                  | (extractKernel kernelTestD) /= kernelD = False
+                  | otherwise = True
+        
+kernelTestA :: [[Rational]]
+kernelTestA = [[1,1,0,0,1], [0,0,1,-2,0],[4,2,0,0,3],[1,1,1,-2,1],[2,2,0,0,2],[1,1,2,-4,1]]
+
+kernelA :: [[Rational]]
+kernelA = [[0,0,2,1,0],[-1/2,-1/2,0,0,1]]
+
+kernelTestB :: [[Rational]]
+kernelTestB = [[2,2,-4,3,-9,1],[1,1,-2,-3,0,2],[3,3,-6,-3,-6,2]]
+
+kernelB :: [[Rational]]
+kernelB = [[-1,1,0,0,0,0],[2,0,1,0,0,0],[3,0,0,1,1,0]]
+
+kernelTestC :: [[Rational]]
+kernelTestC = [[2,3,5],[-4,2,3]]
+
+kernelC :: [[Rational]]
+kernelC = [[-1/16,-13/8,1]]
+
+kernelTestD :: [[Rational]]
+kernelTestD = [[1,0,-3,0,2,-8],[0,1,5,0,-1,4],[0,0,0,1,7,-9],[0,0,0,0,0,0]]
+                       
+kernelD :: [[Rational]]
+kernelD = [[3,-5,1,0,0,0],[-2,1,0,-7,1,0],[8,-4,0,9,0,1]]
+               
 removeRowN :: [[Rational]] -> Int -> [[Rational]]
 removeRowN m r = let (ys,zs) = splitAt r m   in   ys ++ (tail zs)
 
@@ -436,12 +467,17 @@ insertRowN :: [[Rational]] -> [Rational] -> Int -> [[Rational]]
 insertRowN m r n = let (ys,zs) = splitAt n m   in   ys ++ [r] ++ zs
 
 removePivots :: [[Rational]] -> [[Rational]]
-removePivots m = (transpose (go (transpose m) (getPivots m)))
+removePivots m = shorten (transpose (go (transpose m) pivots)) pivotEnd 
   where
+    pivots = getPivots m
+    pivotEnd = elemIndex (-1) pivots
     go :: [[Rational]] -> [Int] -> [[Rational]]
     go m1 []                   = m1
     go m1 (x : xs) | (x < 0)   = m1
                    | otherwise = removeRowN (go m1 xs) x {- notice order here is important. remove later rows first so indexing is accurate -}
+    shorten :: [[Rational]] -> Maybe Int -> [[Rational]]
+    shorten m1 Nothing = m1
+    shorten m1 (Just n) = take n m1
                   
 getPivots :: Eq a => Fractional a => [[a]] -> [Int]
 getPivots [] = []
