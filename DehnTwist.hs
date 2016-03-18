@@ -351,6 +351,32 @@ rref m = f m 0 [0 .. rows - 1]
                     | otherwise = zipWith h newRow row
                   where h = subtract . (* row !! lead')
 
+rrefPartial :: Eq a => Fractional a => Int -> [[a]] -> [[a]]
+rrefPartial endLine m = f m 0 [0 .. endLine - 1]
+  where rows = length m
+        cols = length $ head m
+
+        f m _    []              = m
+        f m lead (r : rs)
+            | indices == Nothing = m
+            | otherwise          = f m' (lead' + 1) rs
+          where indices = find p l
+                p (col, row) = m !! row !! col /= 0
+                l = [(col, row) |
+                    col <- [lead .. cols - 1],
+                    row <- [r .. rows - 1]]
+
+                Just (lead', i) = indices
+                newRow = map (/ m !! i !! lead') $ m !! i
+
+                m' = zipWith g [0..] $
+                    replace r newRow $
+                    replace i (m !! r) m
+                g n row
+                    | n == r    = row
+                    | otherwise = zipWith h newRow row
+                  where h = subtract . (* row !! lead')
+
 {-Convert a vector of homologies into a list of homologies, genus n-}
 {-Note this will fail if the length of v is not a multiple of 2n -}
 vectorToHomologyPath :: [Integer] -> Int -> HomologyPath
@@ -387,10 +413,16 @@ findMissing :: [Int] -> [Int]
 findMissing l = filter (\x -> notElem x l) [0..top]
   where top = maximum l
 
+appendIdentity :: [[Rational]] -> [[Rational]]
+appendIdentity m = m ++ (generateIdentity (length (m!!0)))
+  
 insertIdentity :: [[Rational]] -> [[Rational]] -> [Int] -> [[Rational]]
 insertIdentity m i [] = m ++ i
 insertIdentity m (i:is) (missing:missings) = insertRowN (insertIdentity m is missings) i missing 
 {- Note that the order here is important since adding a row changes the indices. We must add later first -}
+
+determineKernel :: [[Rational]] -> [[Rational]]
+determineKernel m = drop (length m) (rrefPartial (length m) (appendIdentity m))
 
 extractKernel :: [[Rational]] -> [[Rational]]
 extractKernel m = transpose (insertIdentity mOut (generateIdentity (length (mOut!!0))) (findMissing (getPivots rf)))
@@ -936,6 +968,14 @@ generateRight y monodromy = go 1
     go n | (n == stop) = [] {- stop at n=20 -}
          | otherwise   = [subHom (y!!n) (inverseDehnTwistHom (monodromy!!n) (y!!n))] ++ (go (n+1)) {-remember y!!1 is y2 since it's 0 indexed -}
 
+matrixOperate :: [[Rational]] -> [Rational] -> [Rational]
+matrixOperate [] v = []
+matrixOperate (m:ms) v = [(dot m v)] ++ (matrixOperate ms v)
+
+dot :: [Rational] -> [Rational] -> Rational
+dot [] [] = 0
+dot (v1:v1s) (v2:v2s) = (v1*v2) + (dot v1s v2s)
+         
 {- genus is the genus of the fiber -}
 {- monodromy is a list of m dehn twists representing the monodromy -}
 {- returns a list of vectors which are in the kernel of gamma -}
